@@ -1,2 +1,9 @@
+branch_name="$(git branch --show-current)"
+
+if [ "$branch_name" = "main" ] || [ "$branch_name" = "master" ]; then
+  echo "Direct pushes to $branch_name are blocked. Push from a feature branch instead."
+  exit 1
+fi
+
 npm run lint
 npm run typecheck
