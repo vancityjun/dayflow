@@ -1,0 +1,188 @@
+import { create } from 'zustand';
+import type { GeneratedTaskPreview, NewTaskInput, Task, TaskStatus } from '../types/task';
+import {
+  bulkCreateTasks,
+  createTask,
+  deleteTask as deleteTaskFromDb,
+  initDb,
+  loadTasks,
+  updateTask as updateTaskInDb,
+  updateTaskNotificationId,
+  updateTaskStatus,
+} from '../services/db';
+import {
+  cancelTaskNotification,
+  requestNotificationPermission,
+  rescheduleFutureNotifications,
+  scheduleTaskNotification,
+} from '../services/notifications';
+import { getCurrentTask, getTodayTasks, getUpcomingTasks, sortByStartTime } from '../utils/time';
+
+type TaskStore = {
+  tasks: Task[];
+  previewTasks: GeneratedTaskPreview[];
+  loading: boolean;
+  error: string | null;
+  initialized: boolean;
+  initialize: () => Promise<void>;
+  reloadTasks: () => Promise<void>;
+  addTask: (input: NewTaskInput) => Promise<void>;
+  updateTask: (
+    taskId: string,
+    input: Partial<NewTaskInput> & { status?: TaskStatus },
+  ) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  markCompleted: (taskId: string) => Promise<void>;
+  markSkipped: (taskId: string) => Promise<void>;
+  setPreviewTasks: (tasks: GeneratedTaskPreview[]) => void;
+  updatePreviewTask: (taskId: string, patch: Partial<GeneratedTaskPreview>) => void;
+  clearPreviewTasks: () => void;
+  confirmPreviewTasks: () => Promise<void>;
+  clearError: () => void;
+  todayTasks: () => Task[];
+  currentTask: () => Task | undefined;
+  upcomingTasks: () => Task[];
+};
+
+async function refresh(set: (state: Partial<TaskStore>) => void): Promise<Task[]> {
+  const tasks = await loadTasks();
+  set({ tasks: sortByStartTime(tasks), loading: false, error: null });
+  return tasks;
+}
+
+async function runStoreAction(
+  set: (state: Partial<TaskStore>) => void,
+  action: () => Promise<void>,
+): Promise<void> {
+  set({ loading: true, error: null });
+  try {
+    await action();
+    const tasks = await loadTasks();
+    set({ tasks: sortByStartTime(tasks), loading: false, error: null });
+  } catch (error) {
+    set({
+      loading: false,
+      error: error instanceof Error ? error.message : 'Something went wrong.',
+    });
+  }
+}
+
+export const useTaskStore = create<TaskStore>((set, get) => ({
+  tasks: [],
+  previewTasks: [],
+  loading: false,
+  error: null,
+  initialized: false,
+
+  initialize: async () => {
+    set({ loading: true, error: null });
+    try {
+      await initDb();
+      await requestNotificationPermission();
+      const tasks = await loadTasks();
+      await rescheduleFutureNotifications(getUpcomingTasks(tasks));
+      const reloaded = await loadTasks();
+      set({ tasks: sortByStartTime(reloaded), initialized: true, loading: false, error: null });
+    } catch (error) {
+      set({
+        initialized: true,
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to initialize DayFlow.',
+      });
+    }
+  },
+
+  reloadTasks: async () => {
+    set({ loading: true, error: null });
+    try {
+      await refresh(set);
+    } catch (error) {
+      set({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to load tasks.',
+      });
+    }
+  },
+
+  addTask: async (input) => {
+    await runStoreAction(set, async () => {
+      const task = await createTask(input);
+      await scheduleTaskNotification(task);
+    });
+  },
+
+  updateTask: async (taskId, input) => {
+    await runStoreAction(set, async () => {
+      const existing = get().tasks.find((task) => task.id === taskId);
+      if (existing?.notificationId) {
+        await cancelTaskNotification(existing.notificationId);
+        await updateTaskNotificationId(existing.id, null);
+      }
+
+      const updated = await updateTaskInDb(taskId, { ...input, notificationId: null });
+      await scheduleTaskNotification(updated);
+    });
+  },
+
+  deleteTask: async (taskId) => {
+    await runStoreAction(set, async () => {
+      const existing = get().tasks.find((task) => task.id === taskId);
+      await cancelTaskNotification(existing?.notificationId);
+      await deleteTaskFromDb(taskId);
+    });
+  },
+
+  markCompleted: async (taskId) => {
+    await runStoreAction(set, async () => {
+      const existing = get().tasks.find((task) => task.id === taskId);
+      await cancelTaskNotification(existing?.notificationId);
+      const updated = await updateTaskStatus(taskId, 'completed');
+      if (updated.notificationId) await updateTaskNotificationId(taskId, null);
+    });
+  },
+
+  markSkipped: async (taskId) => {
+    await runStoreAction(set, async () => {
+      const existing = get().tasks.find((task) => task.id === taskId);
+      await cancelTaskNotification(existing?.notificationId);
+      const updated = await updateTaskStatus(taskId, 'skipped');
+      if (updated.notificationId) await updateTaskNotificationId(taskId, null);
+    });
+  },
+
+  setPreviewTasks: (tasks) => set({ previewTasks: tasks, error: null }),
+
+  updatePreviewTask: (taskId, patch) => {
+    set({
+      previewTasks: get().previewTasks.map((task) =>
+        task.id === taskId ? { ...task, ...patch } : task,
+      ),
+    });
+  },
+
+  clearPreviewTasks: () => set({ previewTasks: [] }),
+
+  confirmPreviewTasks: async () => {
+    await runStoreAction(set, async () => {
+      const previewTasks = get().previewTasks;
+      const tasks = await bulkCreateTasks(
+        previewTasks.map((task) => ({
+          title: task.title,
+          startTime: task.startTime,
+          endTime: task.endTime,
+          aiGenerated: true,
+        })),
+      );
+      for (const task of tasks) {
+        await scheduleTaskNotification(task);
+      }
+      set({ previewTasks: [] });
+    });
+  },
+
+  clearError: () => set({ error: null }),
+
+  todayTasks: () => getTodayTasks(get().tasks),
+  currentTask: () => getCurrentTask(get().todayTasks()),
+  upcomingTasks: () => getUpcomingTasks(get().todayTasks()),
+}));
