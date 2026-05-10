@@ -2,50 +2,72 @@ import { useEffect, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { deleteOpenAIApiKey, getOpenAIApiKey, saveOpenAIApiKey } from '../services/apiKey';
+import { validateOpenAIApiKey } from '../services/openai';
 import { SettingsView } from '../views/SettingsView';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const [apiKey, setApiKey] = useState('');
-  const [saved, setSaved] = useState(false);
+  const [savedKey, setSavedKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     getOpenAIApiKey()
       .then((key) => {
-        setSaved(Boolean(key));
+        setSavedKey(key);
         setApiKey(key ?? '');
       })
       .catch(() => setMessage('Could not load stored API key.'));
   }, []);
 
   const save = async () => {
+    const trimmed = apiKey.trim();
+    setValidating(true);
+    setMessage(null);
     try {
-      await saveOpenAIApiKey(apiKey);
-      setSaved(Boolean(apiKey.trim()));
-      setMessage(apiKey.trim() ? 'API key saved locally.' : 'API key removed.');
-    } catch {
-      setMessage('Could not save API key.');
+      if (!trimmed) {
+        await saveOpenAIApiKey('');
+        setSavedKey(null);
+        setMessage('API key removed.');
+        return;
+      }
+
+      await validateOpenAIApiKey(trimmed);
+      await saveOpenAIApiKey(trimmed);
+      setSavedKey(trimmed);
+      setApiKey(trimmed);
+      setMessage('API key verified and saved.');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not save API key.');
+    } finally {
+      setValidating(false);
     }
   };
 
   const remove = async () => {
+    setValidating(true);
+    setMessage(null);
     try {
       await deleteOpenAIApiKey();
       setApiKey('');
-      setSaved(false);
+      setSavedKey(null);
       setMessage('API key removed.');
     } catch {
       setMessage('Could not remove API key.');
+    } finally {
+      setValidating(false);
     }
   };
 
   return (
     <SettingsView
       apiKey={apiKey}
-      saved={saved}
+      saved={Boolean(savedKey)}
+      hasUnsavedApiKeyChange={Boolean(savedKey && apiKey.trim() !== savedKey)}
       message={message}
+      validating={validating}
       showPreviewCatalog={__DEV__}
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}

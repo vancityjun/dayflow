@@ -6,16 +6,6 @@ export type AiGeneratedTask = {
   durationMinutes: number;
 };
 
-type OpenAIResponse = {
-  output_text?: string;
-  output?: {
-    content?: {
-      type?: string;
-      text?: string;
-    }[];
-  }[];
-};
-
 const responseSchema = {
   type: 'object',
   additionalProperties: false,
@@ -38,50 +28,41 @@ const responseSchema = {
 
 export async function generateScheduleFromText(
   apiKey: string,
-  roughPlan: string,
+  taskTitles: string[],
 ): Promise<AiGeneratedTask[]> {
-  const trimmed = roughPlan.trim();
+  const tasks = taskTitles.map((title) => title.trim()).filter(Boolean);
   if (!apiKey.trim()) throw new Error('Add your OpenAI API key in Settings first.');
-  if (!trimmed) throw new Error('Enter a rough plan first.');
+  if (tasks.length === 0) throw new Error('Add at least one task first.');
 
-  const response = await fetch(OPENAI_RESPONSES_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey.trim()}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      input: [
-        {
-          role: 'system',
-          content:
-            'You are a scheduling assistant. Convert rough plans into clear tasks. Estimate realistic durations in minutes. Return structured data only.',
-        },
-        {
-          role: 'user',
-          content: `Create a sequential schedule task list from this rough plan: ${trimmed}`,
-        },
-      ],
-      text: {
-        format: {
-          type: 'json_schema',
-          name: 'dayflow_schedule',
-          strict: true,
-          schema: responseSchema,
-        },
+  const response = await postOpenAIResponse(apiKey, {
+    model: DEFAULT_MODEL,
+    input: [
+      {
+        role: 'system',
+        content:
+          'You are a scheduling assistant. Convert separate user tasks into a clear sequential schedule. Estimate realistic durations in minutes. Return structured data only.',
       },
-    }),
+      {
+        role: 'user',
+        content: `Create a schedule from these separate tasks:\n${tasks
+          .map((task, index) => `${index + 1}. ${task}`)
+          .join('\n')}`,
+      },
+    ],
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'dayflow_schedule',
+        strict: true,
+        schema: responseSchema,
+      },
+    },
   });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(body || `OpenAI request failed with ${response.status}`);
-  }
-
-  const data = (await response.json()) as OpenAIResponse;
+  await throwIfOpenAIError(response);
+  const data: unknown = await response.json();
   const output = getResponseText(data);
-  if (!output) throw new Error('OpenAI returned an empty response.');
+  if (!output) throw new Error('OpenAI returned an empty schedule response.');
 
   let parsed: unknown;
   try {
@@ -93,15 +74,93 @@ export async function generateScheduleFromText(
   return validateGeneratedTasks(parsed);
 }
 
-function getResponseText(data: OpenAIResponse): string | null {
-  if (data.output_text) return data.output_text;
+export async function validateOpenAIApiKey(apiKey: string): Promise<void> {
+  if (!apiKey.trim()) throw new Error('Enter an OpenAI API key first.');
 
-  const texts = data.output
-    ?.flatMap((item) => item.content ?? [])
-    .map((content) => content.text)
-    .filter((text): text is string => Boolean(text));
+  const response = await postOpenAIResponse(apiKey, {
+    model: DEFAULT_MODEL,
+    input: 'Reply with OK.',
+  });
+
+  await throwIfOpenAIError(response);
+}
+
+async function postOpenAIResponse(apiKey: string, body: unknown): Promise<Response> {
+  try {
+    return await fetch(OPENAI_RESPONSES_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey.trim()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error('Could not reach OpenAI. Check your internet connection and try again.');
+  }
+}
+
+async function throwIfOpenAIError(response: Response): Promise<void> {
+  if (response.ok) return;
+
+  const detail = await readOpenAIErrorDetail(response);
+
+  if (response.status === 401) {
+    throw new Error('This API key is invalid, expired, or revoked.');
+  }
+  if (response.status === 429) {
+    throw new Error(
+      detail.toLowerCase().includes('quota')
+        ? 'Quota or billing issue. Check your OpenAI billing settings.'
+        : 'OpenAI rate limit reached. Try again in a moment.',
+    );
+  }
+  if (response.status >= 500) {
+    throw new Error('OpenAI is temporarily unavailable. Try again soon.');
+  }
+
+  throw new Error(detail || `OpenAI request failed with status ${response.status}.`);
+}
+
+async function readOpenAIErrorDetail(response: Response): Promise<string> {
+  try {
+    const body: unknown = await response.json();
+    const message = getOpenAIErrorMessage(body);
+    if (message) return message;
+  } catch {
+    return '';
+  }
+
+  return '';
+}
+
+function getOpenAIErrorMessage(value: unknown): string | null {
+  if (!value || typeof value !== 'object' || !('error' in value)) return null;
+  const error = value.error;
+  if (!error || typeof error !== 'object' || !('message' in error)) return null;
+  return typeof error.message === 'string' ? error.message : null;
+}
+
+function getResponseText(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  if ('output_text' in data && typeof data.output_text === 'string') return data.output_text;
+  if (!('output' in data) || !Array.isArray(data.output)) return null;
+
+  const texts = data.output.flatMap((item) => {
+    if (!item || typeof item !== 'object' || !('content' in item) || !Array.isArray(item.content)) {
+      return [];
+    }
+
+    const contents: unknown[] = item.content;
+    return contents.map(getContentText).filter((text): text is string => Boolean(text));
+  });
 
   return texts?.join('\n') || null;
+}
+
+function getContentText(content: unknown): string | null {
+  if (!content || typeof content !== 'object' || !('text' in content)) return null;
+  return typeof content.text === 'string' ? content.text : null;
 }
 
 function validateGeneratedTasks(value: unknown): AiGeneratedTask[] {
@@ -109,7 +168,7 @@ function validateGeneratedTasks(value: unknown): AiGeneratedTask[] {
     throw new Error('AI response did not include tasks.');
   }
 
-  const tasks = (value as { tasks: unknown }).tasks;
+  const tasks = value.tasks;
   if (!Array.isArray(tasks) || tasks.length === 0) {
     throw new Error('AI response did not include any tasks.');
   }
@@ -119,17 +178,20 @@ function validateGeneratedTasks(value: unknown): AiGeneratedTask[] {
       throw new Error('AI response included an invalid task.');
     }
 
-    const raw = task as { title?: unknown; durationMinutes?: unknown };
-    if (typeof raw.title !== 'string' || !raw.title.trim()) {
+    if (!('title' in task) || typeof task.title !== 'string' || !task.title.trim()) {
       throw new Error('AI response included a task without a title.');
     }
-    if (typeof raw.durationMinutes !== 'number' || !Number.isFinite(raw.durationMinutes)) {
+    if (
+      !('durationMinutes' in task) ||
+      typeof task.durationMinutes !== 'number' ||
+      !Number.isFinite(task.durationMinutes)
+    ) {
       throw new Error('AI response included an invalid duration.');
     }
 
     return {
-      title: raw.title.trim(),
-      durationMinutes: Math.round(raw.durationMinutes),
+      title: task.title.trim(),
+      durationMinutes: Math.round(task.durationMinutes),
     };
   });
 }

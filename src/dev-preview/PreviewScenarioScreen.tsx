@@ -168,11 +168,27 @@ function TaskFormPreview({ scenarioId, onBack }: { scenarioId: string; onBack: (
 }
 
 function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack: () => void }) {
-  const [roughPlan, setRoughPlan] = useState('study React, gym, groceries');
+  const [taskRows, setTaskRows] = useState(() =>
+    scenarioId === 'ai-empty-list'
+      ? [{ id: 'preview-task-1', title: '' }]
+      : [
+          { id: 'preview-task-1', title: 'Study React' },
+          { id: 'preview-task-2', title: 'Gym' },
+          { id: 'preview-task-3', title: 'Groceries' },
+        ],
+  );
   const [startTime, setStartTime] = useState('09:00');
   const [previewTasks, setPreviewTasks] = useState<GeneratedTaskPreview[]>(
     scenarioId === 'ai-preview' ? makeGeneratedPreviewTasks() : [],
   );
+  const apiKeyPresent = scenarioId !== 'ai-no-key';
+  const taskCount = taskRows.filter((task) => task.title.trim()).length;
+  const generateStatus = !apiKeyPresent
+    ? 'Add and verify your OpenAI API key in Settings first.'
+    : taskCount === 0
+      ? 'Add at least one task to schedule.'
+      : 'Ready to generate a schedule.';
+  const canGenerate = apiKeyPresent && taskCount > 0;
   const canConfirmPreview =
     previewTasks.length > 0 &&
     previewTasks.every((task) => task.title.trim() && task.durationMinutes >= 10);
@@ -197,21 +213,35 @@ function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack:
 
   return (
     <AIScheduleView
-      apiKeyPresent={scenarioId !== 'ai-no-key'}
-      roughPlan={roughPlan}
+      apiKeyPresent={apiKeyPresent}
+      taskRows={taskRows}
       startTime={startTime}
       generating={false}
       localError={scenarioId === 'ai-no-key' ? 'Add your OpenAI API key in Settings first.' : null}
       storeError={null}
       loading={false}
       previewTasks={previewTasks}
-      canGenerate={scenarioId !== 'ai-no-key'}
+      canGenerate={canGenerate}
+      generateStatus={generateStatus}
       canConfirmPreview={canConfirmPreview}
       onDismissError={() => {}}
-      onChangeRoughPlan={setRoughPlan}
+      onChangeTaskTitle={(rowId, value) =>
+        setTaskRows((rows) =>
+          rows.map((row) => (row.id === rowId ? { ...row, title: value } : row)),
+        )
+      }
+      onAddTaskRow={() =>
+        setTaskRows((rows) => [...rows, { id: `preview-task-${rows.length + 1}`, title: '' }])
+      }
+      onRemoveTaskRow={(rowId) =>
+        setTaskRows((rows) => {
+          const nextRows = rows.filter((row) => row.id !== rowId);
+          return nextRows.length > 0 ? nextRows : [{ id: 'preview-task-1', title: '' }];
+        })
+      }
       onChangeStartTime={setStartTime}
       onGenerate={() => {
-        if (scenarioId !== 'ai-no-key') setPreviewTasks(makeGeneratedPreviewTasks());
+        if (canGenerate) setPreviewTasks(makeGeneratedPreviewTasks());
       }}
       onOpenSettings={onBack}
       onCancel={onBack}
@@ -236,22 +266,34 @@ function SettingsPreview({
   onBack: () => void;
   onOpenPreviewCatalog: () => void;
 }) {
-  const [apiKey, setApiKey] = useState(scenarioId === 'settings-saved' ? 'sk-demo-key' : '');
+  const [apiKey, setApiKey] = useState(
+    scenarioId === 'settings-saved'
+      ? 'sk-demo-key'
+      : scenarioId === 'settings-invalid'
+        ? 'sk-invalid-demo-key'
+        : '',
+  );
   const [saved, setSaved] = useState(scenarioId === 'settings-saved');
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(
+    scenarioId === 'settings-invalid' ? 'This API key is invalid, expired, or revoked.' : null,
+  );
+  const validating = scenarioId === 'settings-validating';
 
   return (
     <SettingsView
       apiKey={apiKey}
       saved={saved}
+      hasUnsavedApiKeyChange={false}
       message={message}
+      validating={validating}
       showPreviewCatalog
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
       onCancel={onBack}
       onSave={() => {
+        if (validating) return;
         setSaved(Boolean(apiKey.trim()));
-        setMessage(apiKey.trim() ? 'API key saved locally.' : 'API key removed.');
+        setMessage(apiKey.trim() ? 'API key verified and saved.' : 'API key removed.');
       }}
       onRemove={() => {
         setApiKey('');

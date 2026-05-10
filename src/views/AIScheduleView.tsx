@@ -5,9 +5,14 @@ import { colors } from '../theme/colors';
 import type { GeneratedTaskPreview } from '../types/task';
 import { durationBetween, formatDisplayTime } from '../utils/time';
 
+type TaskInputRow = {
+  id: string;
+  title: string;
+};
+
 type Props = {
   apiKeyPresent: boolean;
-  roughPlan: string;
+  taskRows: TaskInputRow[];
   startTime: string;
   generating: boolean;
   localError: string | null;
@@ -15,9 +20,12 @@ type Props = {
   loading: boolean;
   previewTasks: GeneratedTaskPreview[];
   canGenerate: boolean;
+  generateStatus: string;
   canConfirmPreview: boolean;
   onDismissError: () => void;
-  onChangeRoughPlan: (value: string) => void;
+  onChangeTaskTitle: (rowId: string, value: string) => void;
+  onAddTaskRow: () => void;
+  onRemoveTaskRow: (rowId: string) => void;
   onChangeStartTime: (value: string) => void;
   onGenerate: () => void;
   onOpenSettings: () => void;
@@ -30,7 +38,7 @@ type Props = {
 
 export function AIScheduleView({
   apiKeyPresent,
-  roughPlan,
+  taskRows,
   startTime,
   generating,
   localError,
@@ -38,9 +46,12 @@ export function AIScheduleView({
   loading,
   previewTasks,
   canGenerate,
+  generateStatus,
   canConfirmPreview,
   onDismissError,
-  onChangeRoughPlan,
+  onChangeTaskTitle,
+  onAddTaskRow,
+  onRemoveTaskRow,
   onChangeStartTime,
   onGenerate,
   onOpenSettings,
@@ -50,6 +61,8 @@ export function AIScheduleView({
   onChangePreviewTitle,
   onChangePreviewDuration,
 }: Props) {
+  const statusTone = canGenerate ? 'ready' : 'blocked';
+
   return (
     <View className="flex-1 bg-paper">
       <ScrollView contentContainerClassName="pb-12 pt-14">
@@ -61,10 +74,18 @@ export function AIScheduleView({
         />
 
         <View className="px-6 pt-6">
-          <Text className="text-4xl font-bold tracking-tight text-ink">Plan your day</Text>
-          <Text className="mt-2 text-base leading-6 text-warm">
-            Tell DayFlow what you want to do. Review and edit the schedule before saving.
-          </Text>
+          <View className="rounded-[28px] bg-ink px-5 py-5">
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-accent">
+              AI Planner
+            </Text>
+            <Text className="mt-2 text-4xl font-bold tracking-tight text-white">
+              Build today from a task list
+            </Text>
+            <Text className="mt-3 text-sm leading-6 text-warm2">
+              Add each task as its own item, choose when the day starts, then generate a schedule
+              you can review before saving.
+            </Text>
+          </View>
 
           {!apiKeyPresent ? (
             <View className="mt-5 rounded-2xl bg-warm4 p-4">
@@ -84,25 +105,92 @@ export function AIScheduleView({
             </View>
           ) : null}
 
-          <TextInput
-            mode="outlined"
-            label="Rough plan"
-            value={roughPlan}
-            onChangeText={onChangeRoughPlan}
-            multiline
-            numberOfLines={5}
-            placeholder="study React, gym, groceries"
-            style={{ marginTop: 24, minHeight: 120 }}
-          />
-          <TextInput
-            mode="outlined"
-            label="Schedule start time"
-            value={startTime}
-            onChangeText={onChangeStartTime}
-            placeholder="09:00"
-            keyboardType="numbers-and-punctuation"
-            style={{ marginTop: 12 }}
-          />
+          <View className="mt-6 rounded-[28px] border border-warm3 bg-white px-4 py-5">
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-warm">Step 1</Text>
+            <Text className="mt-2 text-2xl font-bold tracking-tight text-ink">
+              List what you need to do
+            </Text>
+            <Text className="mb-4 mt-2 text-sm leading-6 text-warm">
+              One row should represent one real task. This removes ambiguity before the AI plans the
+              day.
+            </Text>
+
+            <View className="gap-4">
+              {taskRows.map((task, index) => (
+                <View key={task.id} className="rounded-2xl bg-warm4 p-3">
+                  <View className="mb-3 flex-row items-center justify-between">
+                    <View className="rounded-full bg-ink px-3 py-1">
+                      <Text className="text-xs font-semibold uppercase tracking-[1.5px] text-white">
+                        Task {index + 1}
+                      </Text>
+                    </View>
+                    <Button
+                      mode="text"
+                      compact
+                      disabled={taskRows.length === 1}
+                      onPress={() => onRemoveTaskRow(task.id)}
+                      textColor={taskRows.length === 1 ? colors.warm2 : colors.danger}
+                    >
+                      Remove
+                    </Button>
+                  </View>
+                  <View className="flex-1">
+                    <TextInput
+                      mode="outlined"
+                      label="Task title"
+                      value={task.title}
+                      onChangeText={(value) => onChangeTaskTitle(task.id, value)}
+                      placeholder={
+                        index === 0
+                          ? 'Study React'
+                          : index === 1
+                            ? 'Go to the gym'
+                            : 'Buy groceries'
+                      }
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            <Button
+              mode="outlined"
+              onPress={onAddTaskRow}
+              textColor={colors.ink}
+              style={{ marginTop: 16, borderRadius: 999, borderColor: colors.warm3 }}
+            >
+              Add Another Task
+            </Button>
+          </View>
+
+          <View className="mt-4 rounded-[28px] border border-warm3 bg-white px-4 py-5">
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-warm">Step 2</Text>
+            <Text className="mt-2 text-2xl font-bold tracking-tight text-ink">
+              Choose the start of your day
+            </Text>
+            <TextInput
+              mode="outlined"
+              label="Schedule start time"
+              value={startTime}
+              onChangeText={onChangeStartTime}
+              placeholder="09:00"
+              keyboardType="numbers-and-punctuation"
+              style={{ marginTop: 16 }}
+            />
+          </View>
+
+          <View
+            className={`mt-4 rounded-[28px] px-4 py-5 ${
+              statusTone === 'ready' ? 'bg-accent' : 'bg-warm4'
+            }`}
+          >
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-ink">Step 3</Text>
+            <Text className="mt-2 text-2xl font-bold tracking-tight text-ink">
+              {canGenerate ? 'Ready to generate' : 'Generation is blocked'}
+            </Text>
+            <Text className="mt-2 text-sm leading-6 text-ink2">{generateStatus}</Text>
+          </View>
+
           <Button
             mode="contained"
             disabled={!canGenerate}

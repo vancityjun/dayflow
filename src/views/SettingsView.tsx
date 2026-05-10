@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Button, Snackbar, TextInput } from 'react-native-paper';
 import { ScreenTopBar } from '../components/ScreenTopBar';
@@ -6,7 +7,9 @@ import { colors } from '../theme/colors';
 type Props = {
   apiKey: string;
   saved: boolean;
+  hasUnsavedApiKeyChange: boolean;
   message: string | null;
+  validating: boolean;
   showPreviewCatalog: boolean;
   onDismissMessage: () => void;
   onChangeApiKey: (value: string) => void;
@@ -19,7 +22,9 @@ type Props = {
 export function SettingsView({
   apiKey,
   saved,
+  hasUnsavedApiKeyChange,
   message,
+  validating,
   showPreviewCatalog,
   onDismissMessage,
   onChangeApiKey,
@@ -28,6 +33,8 @@ export function SettingsView({
   onRemove,
   onOpenPreviewCatalog,
 }: Props) {
+  const [hideApiKey, setHideApiKey] = useState(false);
+
   return (
     <View className="flex-1 bg-paper">
       <ScrollView contentContainerClassName="pb-12 pt-14">
@@ -45,37 +52,58 @@ export function SettingsView({
             label="API key"
             value={apiKey}
             onChangeText={onChangeApiKey}
-            secureTextEntry
+            secureTextEntry={hideApiKey}
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="sk-..."
             style={{ marginTop: 24 }}
           />
+          <View className="mt-3 flex-row items-center justify-between">
+            <Text className="flex-1 pr-3 text-sm leading-5 text-warm">
+              Paste your key here. Hide it only if you need privacy while entering it.
+            </Text>
+            <Button mode="text" compact onPress={() => setHideApiKey((value) => !value)}>
+              {hideApiKey ? 'Show' : 'Hide'}
+            </Button>
+          </View>
 
           <View className="mt-5 rounded-2xl bg-warm4 p-4">
             <Text className="font-semibold text-ink">
-              {saved ? 'AI generation is enabled.' : 'AI generation is disabled.'}
+              {validating
+                ? 'Checking your API key...'
+                : hasUnsavedApiKeyChange
+                  ? 'You have unsaved API key changes.'
+                  : saved
+                    ? 'AI generation is enabled.'
+                    : 'AI generation is disabled.'}
             </Text>
             <Text className="mt-1 text-sm leading-5 text-warm">
-              {saved
-                ? 'Your API key is stored locally.'
-                : 'Add and save an API key before using AI schedule generation.'}
+              {validating
+                ? 'DayFlow is verifying the key with OpenAI before saving it.'
+                : hasUnsavedApiKeyChange
+                  ? 'Save this key to verify it. The previously verified key remains active until then.'
+                  : saved
+                    ? 'Your API key was verified and is stored locally.'
+                    : 'Add and save an API key before using AI schedule generation.'}
             </Text>
           </View>
 
           <Button
             mode="contained"
             onPress={onSave}
+            disabled={validating}
+            loading={validating}
             buttonColor={colors.ink}
             textColor={colors.white}
             style={{ marginTop: 20, borderRadius: 999 }}
           >
-            Save API Key
+            {validating ? 'Checking API Key' : 'Save API Key'}
           </Button>
           {saved ? (
             <Button
               mode="text"
               onPress={onRemove}
+              disabled={validating}
               textColor={colors.danger}
               style={{ marginTop: 12 }}
             >
