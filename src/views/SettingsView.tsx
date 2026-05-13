@@ -33,7 +33,7 @@ export function SettingsView({
   onRemove,
   onOpenPreviewCatalog,
 }: Props) {
-  const [hideApiKey, setHideApiKey] = useState(true);
+  const [hideApiKey, setHideApiKey] = useState(false);
 
   return (
     <View className="flex-1 bg-paper">
