@@ -16,6 +16,7 @@ import { HomeScreenView } from '../views/HomeScreenView';
 import { TaskFormView } from '../views/TaskFormView';
 import { AIScheduleView } from '../views/AIScheduleView';
 import { SettingsView } from '../views/SettingsView';
+import { OnboardingPreview } from './OnboardingPreview';
 import {
   buildMockTask,
   makeActiveDayTasks,
@@ -41,6 +42,10 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
     return <HomePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
+  if (scenario.id.startsWith('onboarding-')) {
+    return <OnboardingPreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
+  }
+
   if (scenario.id.startsWith('task-')) {
     return <TaskFormPreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
@@ -51,7 +56,6 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
 
   return (
     <SettingsPreview
-      scenarioId={scenario.id}
       onBack={() => navigation.goBack()}
       onOpenPreviewCatalog={() => navigation.goBack()}
     />
@@ -258,26 +262,15 @@ function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack:
 }
 
 function SettingsPreview({
-  scenarioId,
   onBack,
   onOpenPreviewCatalog,
 }: {
-  scenarioId: string;
   onBack: () => void;
   onOpenPreviewCatalog: () => void;
 }) {
-  const [apiKey, setApiKey] = useState(
-    scenarioId === 'settings-saved'
-      ? 'sk-demo-key'
-      : scenarioId === 'settings-invalid'
-        ? 'sk-invalid-demo-key'
-        : '',
-  );
-  const [saved, setSaved] = useState(scenarioId === 'settings-saved');
-  const [message, setMessage] = useState<string | null>(
-    scenarioId === 'settings-invalid' ? 'This API key is invalid, expired, or revoked.' : null,
-  );
-  const validating = scenarioId === 'settings-validating';
+  const [apiKey, setApiKey] = useState('');
+  const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
 
   return (
     <SettingsView
@@ -285,13 +278,12 @@ function SettingsPreview({
       saved={saved}
       hasUnsavedApiKeyChange={false}
       message={message}
-      validating={validating}
+      validating={false}
       showPreviewCatalog
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
       onCancel={onBack}
       onSave={() => {
-        if (validating) return;
         setSaved(Boolean(apiKey.trim()));
         setMessage(apiKey.trim() ? 'API key verified and saved.' : 'API key removed.');
       }}
