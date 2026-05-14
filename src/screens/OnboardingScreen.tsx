@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 import {
   defaultOnboardingAnswers,
   getVisibleOnboardingSteps,
@@ -6,15 +8,13 @@ import {
 } from '../features/onboarding';
 import { OnboardingView, type OnboardingAnswer } from '../views/OnboardingView';
 
-type Props = {
-  onExit: () => void;
-};
+type Props = NativeStackScreenProps<RootStackParamList, 'Onboarding'>;
 
-export function OnboardingPreview({ onExit }: Props) {
+export function OnboardingScreen({ navigation }: Props) {
   const [currentStepId, setCurrentStepId] = useState(onboardingSteps[0].id);
+  const [completed, setCompleted] = useState(false);
   const [answers, setAnswers] =
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
-  const [completed, setCompleted] = useState(false);
   const visibleSteps = getVisibleOnboardingSteps(answers);
   const stepIndex = Math.max(
     0,
@@ -28,25 +28,15 @@ export function OnboardingPreview({ onExit }: Props) {
       stepIndex={stepIndex}
       selectedValue={answers[step.id]}
       completed={completed}
-      onSelect={(value) => {
-        setAnswers((current) => ({ ...current, [step.id]: value }));
-      }}
+      onSelect={(value) => setAnswers((current) => ({ ...current, [step.id]: value }))}
       onBack={() => {
-        if (completed) {
-          setCompleted(false);
-          setCurrentStepId(visibleSteps[visibleSteps.length - 1].id);
-          return;
-        }
         const previousStep = visibleSteps[stepIndex - 1];
-        if (!previousStep) {
-          onExit();
-          return;
-        }
+        if (!previousStep) return;
         setCurrentStepId(previousStep.id);
       }}
       onNext={() => {
         if (completed) {
-          onExit();
+          navigation.navigate('Home');
           return;
         }
         const nextStep = visibleSteps[stepIndex + 1];

@@ -4,8 +4,10 @@ import { PreviewCatalogScreen } from '../dev-preview/PreviewCatalogScreen';
 import { PreviewScenarioScreen } from '../dev-preview/PreviewScenarioScreen';
 import { AIScheduleScreen } from '../screens/AIScheduleScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { TaskFormScreen } from '../screens/TaskFormScreen';
+import { WeeklyInsightScreen } from '../screens/WeeklyInsightScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -21,6 +23,8 @@ export function RootNavigator() {
       <Stack.Screen name="CreateTask" component={TaskFormScreen} />
       <Stack.Screen name="EditTask" component={TaskFormScreen} />
       <Stack.Screen name="AISchedule" component={AIScheduleScreen} />
+      <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+      <Stack.Screen name="WeeklyInsight" component={WeeklyInsightScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       {__DEV__ ? <Stack.Screen name="PreviewCatalog" component={PreviewCatalogScreen} /> : null}
       {__DEV__ ? <Stack.Screen name="PreviewScenario" component={PreviewScenarioScreen} /> : null}
