@@ -1,7 +1,5 @@
 export const previewScenarios = [
-  { id: 'onboarding-wake-time', title: 'Onboarding · Wake time' },
-  { id: 'onboarding-peak-focus', title: 'Onboarding · Peak focus' },
-  { id: 'onboarding-structure', title: 'Onboarding · Schedule style' },
+  { id: 'onboarding', title: 'Onboarding' },
   { id: 'home-empty', title: 'Home · Empty day' },
   { id: 'home-active', title: 'Home · Active task' },
   { id: 'home-completed', title: 'Home · Completed-heavy' },
@@ -10,5 +8,7 @@ export const previewScenarios = [
   { id: 'ai-no-key', title: 'AI schedule · No API key' },
   { id: 'ai-empty-list', title: 'AI schedule · Empty list' },
   { id: 'ai-preview', title: 'AI schedule · Generated preview' },
+  { id: 'weekly-empty', title: 'Weekly Insight · Empty' },
+  { id: 'weekly-data', title: 'Weekly Insight · Data' },
   { id: 'settings', title: 'Settings' },
 ] as const;

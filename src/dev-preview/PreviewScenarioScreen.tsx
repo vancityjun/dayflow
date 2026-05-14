@@ -16,7 +16,9 @@ import { HomeScreenView } from '../views/HomeScreenView';
 import { TaskFormView } from '../views/TaskFormView';
 import { AIScheduleView } from '../views/AIScheduleView';
 import { SettingsView } from '../views/SettingsView';
+import { WeeklyInsightView } from '../views/WeeklyInsightView';
 import { OnboardingPreview } from './OnboardingPreview';
+import { buildWeeklyInsightSummary } from '../utils/weeklyInsight';
 import {
   buildMockTask,
   makeActiveDayTasks,
@@ -42,8 +44,8 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
     return <HomePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
-  if (scenario.id.startsWith('onboarding-')) {
-    return <OnboardingPreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
+  if (scenario.id === 'onboarding') {
+    return <OnboardingPreview onExit={() => navigation.goBack()} />;
   }
 
   if (scenario.id.startsWith('task-')) {
@@ -52,6 +54,10 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
 
   if (scenario.id.startsWith('ai-')) {
     return <AiSchedulePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
+  }
+
+  if (scenario.id.startsWith('weekly-')) {
+    return <WeeklyInsightPreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
   return (
@@ -258,6 +264,13 @@ function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack:
       }
       onChangePreviewDuration={updateDuration}
     />
+  );
+}
+
+function WeeklyInsightPreview({ scenarioId, onBack }: { scenarioId: string; onBack: () => void }) {
+  const tasks = scenarioId === 'weekly-empty' ? [] : makeCompletedHeavyTasks();
+  return (
+    <WeeklyInsightView summary={buildWeeklyInsightSummary(tasks)} onOptimizeTomorrow={onBack} />
   );
 }
 
