@@ -1,5 +1,6 @@
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CurrentTaskCard } from '../components/CurrentTaskCard';
 import { TaskTimelineRow } from '../components/TaskTimelineRow';
 import { colors } from '../theme/colors';
@@ -40,47 +41,22 @@ export function HomeScreenView({
   onOpenAiSchedule,
   onOpenSettings,
 }: Props) {
-  const completed = tasks.filter((task) => task.status === 'completed').length;
-  const total = tasks.length || 1;
-
   return (
-    <View className="flex-1 bg-paper">
+    <SafeAreaView className="flex-1 bg-paper" edges={['top']}>
       <ScrollView
-        contentContainerClassName="pb-32 pt-16"
+        contentContainerClassName="pb-28 pt-3"
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={onRefresh} tintColor={colors.ink} />
         }
       >
-        <View className="px-6 pb-7">
-          <View className="flex-row items-start justify-between gap-4">
-            <View>
-              <Text className="text-xs font-medium uppercase tracking-[2px] text-warm">
-                {weekday}
-              </Text>
-              <Text className="mt-1.5 text-4xl font-bold tracking-tight text-ink">{dayMonth}</Text>
-            </View>
-            <View className="items-end gap-2">
-              <Text className="text-lg font-medium text-warm">
-                {completed}
-                <Text className="text-warm2">/{tasks.length}</Text>
-              </Text>
-              <Button
-                mode="outlined"
-                onPress={onOpenSettings}
-                textColor={colors.ink}
-                style={{ borderRadius: 999, borderColor: colors.warm3 }}
-                compact
-              >
-                Settings
-              </Button>
-            </View>
+        <View className="flex-row items-start justify-between gap-4 px-4 pb-7">
+          <View>
+            <Text className="text-[11px] font-normal uppercase text-warm">{weekday}</Text>
+            <Text className="mt-1.5 text-4xl font-bold tracking-[-1.4px] text-ink">{dayMonth}</Text>
           </View>
-          <View className="mt-5 h-0.5 overflow-hidden rounded-full bg-warm3">
-            <View
-              style={{ width: `${(completed / total) * 100}%` }}
-              className="h-full rounded-full bg-ink"
-            />
-          </View>
+          <Button mode="text" compact onPress={onOpenSettings} textColor={colors.warm}>
+            Settings
+          </Button>
         </View>
 
         <CurrentTaskCard
@@ -90,8 +66,8 @@ export function HomeScreenView({
           onSkip={onSkipCurrent}
         />
 
-        <View className="mt-6 flex-row items-baseline justify-between px-6 pb-1.5">
-          <Text className="text-xs font-semibold uppercase tracking-[2px] text-warm">Today</Text>
+        <View className="mt-7 flex-row items-baseline justify-between px-4 pb-1.5">
+          <Text className="text-[11px] font-normal uppercase tracking-[1.5px] text-ink">Today</Text>
           <Text className="text-xs font-medium text-warm2">{tasks.length} tasks</Text>
         </View>
 
@@ -148,6 +124,6 @@ export function HomeScreenView({
       <Snackbar visible={Boolean(error)} onDismiss={onDismissError} duration={4000}>
         {error}
       </Snackbar>
-    </View>
+    </SafeAreaView>
   );
 }
