@@ -104,7 +104,7 @@ export function CurrentTaskCard({ task, nextTask, onComplete, onSkip }: Props) {
         <Button
           mode="contained"
           onPress={onComplete}
-          buttonColor="#01B224"
+          buttonColor={colors.accent}
           textColor={colors.white}
           style={{ flex: 1, borderRadius: 999 }}
         >

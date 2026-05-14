@@ -91,7 +91,7 @@ export function CompletionState({
       </View>
       <Text className="mt-8 text-[26px] font-bold tracking-[-0.8px] text-ink">{title}</Text>
       <Text className="mt-4 max-w-[280px] text-center text-base leading-7 text-warm">{body}</Text>
-      <View className="mt-8 w-[345px]">
+      <View className="mt-8 w-full">
         <PillActionButton label={actionLabel} onPress={onAction} />
       </View>
     </View>

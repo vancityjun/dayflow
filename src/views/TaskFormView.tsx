@@ -228,7 +228,7 @@ export function TaskFormView({
   const titleInputRef = useRef<RNTextInput>(null);
 
   return (
-    <SafeAreaView className="flex-1 bg-paper" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']}>
       <ScrollView contentContainerClassName="pb-40 pt-4">
         <View className="px-6 pt-7">
           <View className="flex-row items-center justify-between">
@@ -256,7 +256,7 @@ export function TaskFormView({
                 onChangeText={onChangeTitle}
                 placeholder={mode === 'edit' ? 'Task name' : 'Add a task'}
                 placeholderTextColor={colors.warm}
-                className="flex-1 text-[12px] text-ink"
+                className="flex-1 text-[32px] font-bold tracking-[-0.96px] text-ink"
               />
               <View className="rounded-full bg-[rgba(35,36,34,0.07)] px-[10px] py-[5px]">
                 <Text className="text-[10px] tracking-[-0.1px] text-ink">
@@ -295,7 +295,7 @@ export function TaskFormView({
         </View>
 
         <View className="flex-row items-center gap-[7px] px-6 pt-3">
-          <View className="h-1 w-1 rounded-full bg-[#01B224]" />
+          <View className="h-1 w-1 rounded-full bg-accent" />
           <Text className="text-[12px] tracking-[0.12px] text-ink2">
             No need to set time - we&apos;ll organize your day.
           </Text>
@@ -349,7 +349,7 @@ export function TaskFormView({
       <View className="absolute bottom-0 left-0 right-0 bg-paper px-4 pb-6 pt-3">
         <Button
           mode="contained"
-          buttonColor="#01B224"
+          buttonColor={colors.accent}
           textColor={colors.white}
           disabled={!canSave}
           loading={loading}

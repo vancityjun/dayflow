@@ -6,7 +6,7 @@ export const colors = {
   warm2: '#C9C3B5',
   warm3: '#E8E3D7',
   warm4: '#F2EEE5',
-  accent: '#D7FE03',
+  accent: '#01B224',
   danger: '#A23A2E',
   white: '#FFFFFF',
 };

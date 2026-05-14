@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompletionState, PillActionButton } from '../components/LightScreenPrimitives';
 
 export type OnboardingCommitmentAnswer = {
@@ -258,7 +259,7 @@ export function OnboardingView({
       : Boolean(selectedValue);
 
   return (
-    <View className="flex-1 bg-paper">
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']}>
       <ScrollView contentContainerClassName="flex-grow pb-28 pt-20">
         <View className="flex-row items-center gap-3 px-6">
           <Pressable
@@ -384,6 +385,6 @@ export function OnboardingView({
           onPress={onNext}
         />
       </View>
-    </View>
+    </SafeAreaView>
   );
 }

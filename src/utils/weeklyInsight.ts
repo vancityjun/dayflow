@@ -7,7 +7,8 @@ const hourLabels = ['8', '10', '12', '2', '4', '6'];
 function formatRange(end = new Date()): string {
   const start = new Date(end);
   start.setDate(end.getDate() - 7);
-  const monthDay = (date: Date) => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const monthDay = (date: Date) =>
+    date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   return `${monthDay(start)} - ${monthDay(end)}`;
 }
 
@@ -35,7 +36,9 @@ export function buildWeeklyInsightSummary(tasks: Task[], now = new Date()): Week
 
   const peak = buckets.reduce((best, item) => (item.value > best.value ? item : best), buckets[0]);
   const peakHourLabel =
-    peak.value > 0 ? `${peak.label} ${Number(peak.label) >= 8 ? 'AM' : 'PM'}` : 'N/A';
+    peak.value > 0
+      ? `${peak.label} ${peak.label === '12' || Number(peak.label) < 8 ? 'PM' : 'AM'}`
+      : 'N/A';
 
   return {
     dateRange: formatRange(now),
