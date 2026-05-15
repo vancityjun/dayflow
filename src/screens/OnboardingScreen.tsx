@@ -20,6 +20,7 @@ export function OnboardingScreen({ navigation, route }: Props) {
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(editMode);
 
   useEffect(() => {
     getDarkModeEnabled()
@@ -28,17 +29,33 @@ export function OnboardingScreen({ navigation, route }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!editMode) return;
+    if (!editMode) {
+      setLoadingProfile(false);
+      return;
+    }
 
+    let mounted = true;
+    setLoadingProfile(true);
     getOnboardingProfile()
       .then((profile) => {
+        if (!mounted) return;
         if (!profile) return;
         setAnswers({ ...defaultOnboardingAnswers, ...profile });
       })
       .catch(() => {
+        if (!mounted) return;
         setAnswers(defaultOnboardingAnswers);
+      })
+      .finally(() => {
+        if (mounted) setLoadingProfile(false);
       });
+
+    return () => {
+      mounted = false;
+    };
   }, [editMode]);
+
+  if (loadingProfile) return null;
 
   const visibleSteps = getVisibleOnboardingSteps(answers);
   const stepIndex = Math.max(

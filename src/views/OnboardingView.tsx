@@ -32,10 +32,10 @@ type Props = {
   onNext: () => void;
 };
 
-const wheelItemHeight = 28;
-const wheelHeight = 154;
+const wheelItemHeight = 34;
+const wheelHeight = 182;
 const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
-const minuteOptions = Array.from({ length: 6 }, (_, index) => String(index * 10).padStart(2, '0'));
+const minuteOptions = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 const meridiemOptions = ['AM', 'PM'];
 const customCommitmentOption = 'Custom';
 
@@ -93,53 +93,55 @@ function WheelColumn({
   onChange,
   width,
   align = 'center',
-  loop = false,
   darkModeEnabled,
+  testID,
 }: {
   options: string[];
   selectedValue: string;
   onChange: (value: string) => void;
   width: number;
   align?: 'left' | 'center' | 'right';
-  loop?: boolean;
   darkModeEnabled: boolean;
+  testID?: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
-  const loopOffset = loop ? options.length : 0;
-  const wheelOptions = loop ? [...options, ...options, ...options] : options;
+  const commitScrollSelection = (offsetY: number) => {
+    const nextIndex = Math.round(offsetY / wheelItemHeight);
+    const optionIndex = Math.max(0, Math.min(options.length - 1, nextIndex));
+    onChange(options[optionIndex]);
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
-      y: (selectedIndex + loopOffset) * wheelItemHeight,
+      y: selectedIndex * wheelItemHeight,
       animated: false,
     });
-  }, [loopOffset, selectedIndex]);
+  }, [selectedIndex]);
 
   return (
     <View style={{ width, height: wheelHeight }}>
       <ScrollView
         ref={scrollRef}
+        testID={testID}
         showsVerticalScrollIndicator={false}
         snapToInterval={wheelItemHeight}
         decelerationRate="fast"
         bounces={false}
+        overScrollMode="never"
         contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
+        onScrollEndDrag={(event) => {
+          commitScrollSelection(event.nativeEvent.contentOffset.y);
+        }}
         onMomentumScrollEnd={(event) => {
-          const nextIndex = Math.round(event.nativeEvent.contentOffset.y / wheelItemHeight);
-          const boundedIndex = Math.max(0, Math.min(wheelOptions.length - 1, nextIndex));
-          const optionIndex = loop ? boundedIndex % options.length : boundedIndex;
-          onChange(options[optionIndex]);
-          if (loop) {
-            scrollRef.current?.scrollTo({
-              y: (optionIndex + loopOffset) * wheelItemHeight,
-              animated: false,
-            });
-          }
+          commitScrollSelection(event.nativeEvent.contentOffset.y);
         }}
       >
-        {wheelOptions.map((item, index) => {
-          const selected = item === selectedValue;
+        {options.map((item, index) => {
+          const distance = Math.abs(index - selectedIndex);
+          const selected = distance === 0;
+          const fontSize = selected ? 24 : distance === 1 ? 22 : distance === 2 ? 18 : 13;
+          const opacity = selected ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.32 : 0.18;
           const justifyClassName =
             align === 'right' ? 'items-end' : align === 'left' ? 'items-start' : 'items-center';
           return (
@@ -153,11 +155,10 @@ function WheelColumn({
               <Text
                 className={`${
                   selected
-                    ? `text-[18px] font-medium ${darkModeEnabled ? 'text-white' : 'text-ink'}`
-                    : `text-[13px] font-normal ${
-                        darkModeEnabled ? 'text-[#6D726A]' : 'text-ink'
-                      } opacity-30`
+                    ? `font-medium ${darkModeEnabled ? 'text-white' : 'text-ink'}`
+                    : `font-normal ${darkModeEnabled ? 'text-[#6D726A]' : 'text-ink'}`
                 }`}
+                style={{ fontSize, opacity }}
               >
                 {item}
               </Text>
@@ -183,16 +184,16 @@ function TimeWheelPicker({
   return (
     <View
       className="relative items-center"
-      style={{ height: wheelHeight, width: '100%', maxWidth: 292 }}
+      style={{ height: wheelHeight, width: '100%', maxWidth: 326 }}
       testID="onboarding-time-picker"
     >
       <View
-        className={`absolute left-0 right-0 rounded-[6px] ${
+        className={`absolute left-0 right-0 rounded-[10px] ${
           darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-[rgba(35,36,34,0.05)]'
         }`}
         style={{
-          top: (wheelHeight - 28) / 2,
-          height: 28,
+          top: (wheelHeight - 36) / 2,
+          height: 36,
         }}
       />
       <View
@@ -202,10 +203,10 @@ function TimeWheelPicker({
         <WheelColumn
           options={hourOptions}
           selectedValue={parsed.hour}
-          width={72}
+          width={84}
           align="right"
-          loop
           darkModeEnabled={darkModeEnabled}
+          testID="onboarding-hour-wheel"
           onChange={(nextHour) =>
             onChange(composeTimeValue(nextHour, parsed.minute, parsed.meridiem))
           }
@@ -213,9 +214,9 @@ function TimeWheelPicker({
         <WheelColumn
           options={minuteOptions}
           selectedValue={parsed.minute}
-          width={72}
-          loop
+          width={86}
           darkModeEnabled={darkModeEnabled}
+          testID="onboarding-minute-wheel"
           onChange={(nextMinute) =>
             onChange(composeTimeValue(parsed.hour, nextMinute, parsed.meridiem))
           }
@@ -223,9 +224,10 @@ function TimeWheelPicker({
         <WheelColumn
           options={meridiemOptions}
           selectedValue={parsed.meridiem}
-          width={72}
+          width={92}
           align="left"
           darkModeEnabled={darkModeEnabled}
+          testID="onboarding-meridiem-wheel"
           onChange={(nextMeridiem) =>
             onChange(composeTimeValue(parsed.hour, parsed.minute, nextMeridiem))
           }
@@ -255,8 +257,8 @@ function renderOptionCard({
       ? 'font-semibold text-ink'
       : 'font-semibold text-white'
     : darkModeEnabled
-      ? 'text-white'
-      : 'text-ink';
+      ? 'font-medium text-white'
+      : 'font-medium text-ink';
 
   return (
     <Pressable
@@ -378,14 +380,14 @@ export function OnboardingView({
 
         <View className="px-6 pt-11">
           <Text
-            className={`text-[11px] font-medium uppercase tracking-[1.8px] ${
+            className={`text-[11px] font-medium uppercase tracking-[0.4px] ${
               darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
             }`}
           >
             Question {stepIndex + 1}
           </Text>
           <Text
-            className={`mt-3 max-w-[285px] text-[20px] font-bold leading-[25px] ${
+            className={`mt-3 max-w-[320px] text-[25px] font-bold leading-[31px] ${
               darkModeEnabled ? 'text-white' : 'text-ink'
             }`}
           >

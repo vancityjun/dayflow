@@ -113,7 +113,7 @@ export function CompletionState({
         </View>
       </View>
       <Text
-        className={`mt-8 text-[26px] font-bold tracking-[-0.8px] ${
+        className={`mt-8 text-[30px] font-bold tracking-[-0.6px] ${
           darkModeEnabled ? 'text-white' : 'text-ink'
         }`}
       >

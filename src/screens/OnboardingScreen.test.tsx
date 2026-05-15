@@ -147,6 +147,109 @@ describe('OnboardingScreen', () => {
     expect(screen.getByText('When do you focus best?')).toBeOnTheScreen();
   });
 
+  it('updates the meridiem selection when the user drags the time wheel', async () => {
+    renderOnboardingScreen();
+
+    fireEvent(screen.getByTestId('onboarding-meridiem-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 34,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 7:00 PM',
+      ),
+    );
+  });
+
+  it('uses five-minute steps when the user drags the minute wheel', async () => {
+    renderOnboardingScreen();
+
+    fireEvent(screen.getByTestId('onboarding-minute-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 34,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 7:05 AM',
+      ),
+    );
+  });
+
+  it('updates the time wheel even when drag end includes velocity', async () => {
+    renderOnboardingScreen();
+
+    fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 8 * 34,
+        },
+        velocity: {
+          y: 1.2,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 9:00 AM',
+      ),
+    );
+  });
+
+  it('keeps hour and minute wheels clamped at their final values', async () => {
+    renderOnboardingScreen();
+
+    fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 11 * 34,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 12:00 AM',
+      ),
+    );
+
+    fireEvent(screen.getByTestId('onboarding-minute-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 11 * 34,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 12:55 AM',
+      ),
+    );
+
+    fireEvent(screen.getByTestId('onboarding-minute-wheel'), 'scrollEndDrag', {
+      nativeEvent: {
+        contentOffset: {
+          y: 30 * 34,
+        },
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 12:55 AM',
+      ),
+    );
+  });
+
   it('uses the saved dark mode preference for onboarding colors', async () => {
     getDarkModeEnabledMock.mockResolvedValueOnce(true);
 
@@ -195,5 +298,35 @@ describe('OnboardingScreen', () => {
       }),
     );
     expect(navigation.navigate).toHaveBeenCalledWith('Home');
+  });
+
+  it('waits for the saved profile before showing edit mode defaults', async () => {
+    let resolveProfile: (profile: Awaited<ReturnType<typeof getOnboardingProfile>>) => void;
+    getOnboardingProfileMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveProfile = resolve;
+        }),
+    );
+
+    renderOnboardingScreen({ mode: 'edit' });
+
+    expect(screen.queryByText('What time do you usually wake up?')).not.toBeOnTheScreen();
+    expect(screen.queryByText('Wake-up time: 7:00 AM')).not.toBeOnTheScreen();
+
+    resolveProfile!({
+      wake: '8:00 AM',
+      work: '9:00 AM',
+      'commitment-presence': 'No',
+      focus: 'Evening',
+      'free-time': '2-3 hours',
+      goal: 'Exercise',
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 8:00 AM',
+      ),
+    );
   });
 });

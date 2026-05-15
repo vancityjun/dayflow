@@ -136,7 +136,9 @@ export function SettingsView({
               Appearance
             </Text>
             <View className="mt-3 min-h-[58px] flex-row items-center justify-between rounded-2xl border border-warm3 bg-paper px-5">
-              <Text className="text-base text-ink">Dark Mode</Text>
+              <Text className="text-[14px] font-medium leading-5 tracking-[0.1px] text-ink">
+                Dark Mode
+              </Text>
               <Pressable
                 accessibilityRole="switch"
                 accessibilityState={{ checked: darkModeEnabled }}
