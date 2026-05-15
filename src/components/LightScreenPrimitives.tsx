@@ -49,6 +49,7 @@ export function PillActionButton({
   loading = false,
   buttonColor,
   textColor,
+  labelStyle,
 }: {
   label: string;
   onPress: () => void;
@@ -56,6 +57,7 @@ export function PillActionButton({
   loading?: boolean;
   buttonColor?: string;
   textColor?: string;
+  labelStyle?: { fontSize?: number; fontWeight?: '400' | '500' | '600' | '700' };
 }) {
   return (
     <Button
@@ -67,6 +69,7 @@ export function PillActionButton({
       textColor={textColor ?? colors.white}
       style={{ borderRadius: 999, opacity: disabled && !loading ? 0.35 : 1 }}
       contentStyle={{ height: 52 }}
+      labelStyle={labelStyle}
     >
       {label}
     </Button>
@@ -113,7 +116,7 @@ export function CompletionState({
         </View>
       </View>
       <Text
-        className={`mt-8 text-[30px] font-bold tracking-[-0.6px] ${
+        className={`mt-8 text-[35px] font-bold tracking-[-0.6px] ${
           darkModeEnabled ? 'text-white' : 'text-ink'
         }`}
       >
@@ -132,6 +135,7 @@ export function CompletionState({
           onPress={onAction}
           buttonColor={darkModeEnabled ? colors.white : undefined}
           textColor={darkModeEnabled ? colors.ink : undefined}
+          labelStyle={{ fontSize: 17, fontWeight: '600' }}
         />
       </View>
     </View>

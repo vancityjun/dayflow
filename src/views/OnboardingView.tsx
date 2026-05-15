@@ -251,14 +251,14 @@ function renderOptionCard({
   const selectedCardClass = darkModeEnabled ? 'bg-white' : 'bg-ink';
   const unselectedCardClass = darkModeEnabled
     ? 'border border-[#2A2D27] bg-[#1F211E]'
-    : 'border border-warm3 bg-paper';
+    : 'border border-warm3 bg-white';
   const optionTextClass = selected
     ? darkModeEnabled
       ? 'font-semibold text-ink'
       : 'font-semibold text-white'
     : darkModeEnabled
-      ? 'font-medium text-white'
-      : 'font-medium text-ink';
+      ? 'font-semibold text-white'
+      : 'font-semibold text-ink';
 
   return (
     <Pressable
@@ -268,7 +268,7 @@ function renderOptionCard({
         selected ? selectedCardClass : unselectedCardClass
       }`}
     >
-      <Text className={`text-base ${optionTextClass}`}>{option}</Text>
+      <Text className={`text-[17px] ${optionTextClass}`}>{option}</Text>
       {selected ? (
         <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
           <View className="h-[13px] w-[15px]">
@@ -403,7 +403,7 @@ export function OnboardingView({
               darkModeEnabled={darkModeEnabled}
             />
             <Text
-              className={`mt-6 text-center text-[11px] ${
+              className={`mt-6 text-center text-[12px] ${
                 darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
               }`}
               testID="onboarding-time-helper"
@@ -539,6 +539,7 @@ export function OnboardingView({
                 ? '#8A857A'
                 : undefined
           }
+          labelStyle={{ fontSize: 17, fontWeight: '600' }}
           onPress={onNext}
         />
       </View>

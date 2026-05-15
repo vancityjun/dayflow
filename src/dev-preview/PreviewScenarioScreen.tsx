@@ -44,8 +44,13 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
     return <HomePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
-  if (scenario.id === 'onboarding') {
-    return <OnboardingPreview onExit={() => navigation.goBack()} />;
+  if (scenario.id.startsWith('onboarding')) {
+    return (
+      <OnboardingPreview
+        darkModeEnabled={scenario.id === 'onboarding-dark'}
+        onExit={() => navigation.goBack()}
+      />
+    );
   }
 
   if (scenario.id.startsWith('task-')) {
