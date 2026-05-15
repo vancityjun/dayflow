@@ -44,7 +44,7 @@ describe('onboardingProfile service', () => {
     await expect(getOnboardingProfile()).resolves.toBeNull();
   });
 
-  it('normalizes old work-start defaults to 7:00 AM', async () => {
+  it('keeps an explicitly saved 8:00 AM work-start time', async () => {
     getItemAsyncMock.mockResolvedValueOnce(
       JSON.stringify({
         wake: '7:00 AM',
@@ -54,11 +54,11 @@ describe('onboardingProfile service', () => {
 
     await expect(getOnboardingProfile()).resolves.toEqual({
       wake: '7:00 AM',
-      work: '7:00 AM',
+      work: '8:00 AM',
     });
   });
 
-  it('normalizes the old custom commitment end-time default to 7:00 AM', async () => {
+  it('keeps an explicitly saved 9:00 AM custom commitment end time', async () => {
     getItemAsyncMock.mockResolvedValueOnce(
       JSON.stringify({
         wake: '7:00 AM',
@@ -77,7 +77,7 @@ describe('onboardingProfile service', () => {
       'commitment-time': {
         option: 'Custom',
         startTime: '7:00 AM',
-        endTime: '7:00 AM',
+        endTime: '9:00 AM',
       },
     });
   });

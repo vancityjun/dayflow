@@ -12,7 +12,7 @@ export async function getOnboardingProfile(): Promise<OnboardingProfile | null> 
   try {
     const parsed: unknown = JSON.parse(rawValue);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-    return normalizeOnboardingProfile(parsed as OnboardingProfile);
+    return parsed as OnboardingProfile;
   } catch {
     return null;
   }
@@ -40,28 +40,6 @@ export function formatOnboardingProfileForPrompt(profile: OnboardingProfile | nu
   ].filter((line): line is string => Boolean(line));
 
   return lines.length > 0 ? lines.map((line) => `- ${line}`).join('\n') : null;
-}
-
-function normalizeOnboardingProfile(profile: OnboardingProfile): OnboardingProfile {
-  const nextProfile = { ...profile };
-
-  if (profile.work === '9:00 AM' || profile.work === '8:00 AM') {
-    nextProfile.work = '7:00 AM';
-  }
-
-  const commitmentTime = nextProfile['commitment-time'];
-  if (
-    isCommitmentAnswer(commitmentTime) &&
-    commitmentTime.option === 'Custom' &&
-    (commitmentTime.endTime === '9:00 AM' || commitmentTime.endTime === '8:00 AM')
-  ) {
-    nextProfile['commitment-time'] = {
-      ...commitmentTime,
-      endTime: '7:00 AM',
-    };
-  }
-
-  return nextProfile;
 }
 
 function formatStringAnswer(label: string, answer: OnboardingAnswer | undefined): string | null {
