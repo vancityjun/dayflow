@@ -24,6 +24,7 @@ type Props = {
   stepIndex: number;
   selectedValue: OnboardingAnswer | undefined;
   completed: boolean;
+  errorMessage?: string;
   completionActionLabel?: string;
   darkModeEnabled?: boolean;
   onSelect: (value: OnboardingAnswer) => void;
@@ -293,6 +294,7 @@ export function OnboardingView({
   stepIndex,
   selectedValue,
   completed,
+  errorMessage,
   completionActionLabel = 'Get Started',
   darkModeEnabled = false,
   onSelect,
@@ -505,6 +507,15 @@ export function OnboardingView({
           darkModeEnabled ? 'bg-[#151713]' : 'bg-paper'
         }`}
       >
+        {errorMessage ? (
+          <Text
+            className={`mb-3 text-center text-sm ${
+              darkModeEnabled ? 'text-[#FFB4A8]' : 'text-danger'
+            }`}
+          >
+            {errorMessage}
+          </Text>
+        ) : null}
         <PillActionButton
           label="Next"
           disabled={!canNext}

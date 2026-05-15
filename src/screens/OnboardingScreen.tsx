@@ -19,6 +19,7 @@ export function OnboardingScreen({ navigation, route }: Props) {
   const [answers, setAnswers] =
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     getDarkModeEnabled()
@@ -52,9 +53,14 @@ export function OnboardingScreen({ navigation, route }: Props) {
       stepIndex={stepIndex}
       selectedValue={answers[step.id]}
       completed={completed}
+      errorMessage={saveError ?? undefined}
       darkModeEnabled={darkModeEnabled}
-      onSelect={(value) => setAnswers((current) => ({ ...current, [step.id]: value }))}
+      onSelect={(value) => {
+        setSaveError(null);
+        setAnswers((current) => ({ ...current, [step.id]: value }));
+      }}
       onBack={() => {
+        setSaveError(null);
         const previousStep = visibleSteps[stepIndex - 1];
         if (!previousStep) return;
         setCurrentStepId(previousStep.id);
@@ -66,10 +72,16 @@ export function OnboardingScreen({ navigation, route }: Props) {
         }
         const nextStep = visibleSteps[stepIndex + 1];
         if (!nextStep) {
-          await saveOnboardingProfile(answers);
-          setCompleted(true);
+          try {
+            setSaveError(null);
+            await saveOnboardingProfile(answers);
+            setCompleted(true);
+          } catch {
+            setSaveError("Couldn't save your onboarding profile. Please try again.");
+          }
           return;
         }
+        setSaveError(null);
         setCurrentStepId(nextStep.id);
       }}
     />

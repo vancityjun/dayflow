@@ -101,6 +101,39 @@ describe('OnboardingScreen', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('Home');
   });
 
+  it('shows an error and lets the user retry when saving the profile fails', async () => {
+    saveOnboardingProfileMock
+      .mockRejectedValueOnce(new Error('storage failed'))
+      .mockResolvedValueOnce();
+
+    renderOnboardingScreen();
+
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Yes'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText("I don't have fixed commitments"));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Morning'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('1-2 hours'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Study'));
+    fireEvent.press(screen.getByText('Next'));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Couldn't save your onboarding profile. Please try again."),
+      ).toBeOnTheScreen(),
+    );
+    expect(screen.queryByText('All set!')).not.toBeOnTheScreen();
+
+    fireEvent.press(screen.getByText('Next'));
+
+    await waitFor(() => expect(screen.getByText('All set!')).toBeOnTheScreen());
+    expect(saveOnboardingProfileMock).toHaveBeenCalledTimes(2);
+  });
+
   it('skips fixed-commitment time when the user says no', () => {
     renderOnboardingScreen();
 
