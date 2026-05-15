@@ -305,6 +305,7 @@ function SettingsPreview({
         setSaved(false);
         setMessage('API key removed.');
       }}
+      onEditOnboardingProfile={onBack}
       onOpenPreviewCatalog={onOpenPreviewCatalog}
     />
   );

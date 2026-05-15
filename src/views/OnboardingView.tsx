@@ -25,26 +25,26 @@ type Props = {
   stepIndex: number;
   selectedValue: OnboardingAnswer | undefined;
   completed: boolean;
+  completionActionLabel?: string;
   onSelect: (value: OnboardingAnswer) => void;
   onBack: () => void;
   onNext: () => void;
 };
 
-const wheelItemHeight = 34;
-const wheelHeight = 182;
-const hourOptions = Array.from({ length: 9 }, (_, index) => String(index + 3));
-const minuteOptions = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
+const wheelItemHeight = 28;
+const wheelHeight = 154;
+const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
+const minuteOptions = Array.from({ length: 6 }, (_, index) => String(index * 10).padStart(2, '0'));
 const meridiemOptions = ['AM', 'PM'];
 const customCommitmentOption = 'Custom';
 
 function OnboardingProgress({ total, activeIndex }: { total: number; activeIndex: number }) {
   return (
-    <View className="flex-row items-center justify-between">
+    <View className="flex-row items-center gap-4" testID="onboarding-progress">
       {Array.from({ length: total }).map((_, index) => (
         <View
           key={index}
-          className={`h-[3px] rounded-full ${index === activeIndex ? 'bg-ink' : 'bg-warm3'}`}
-          style={{ width: 27 }}
+          className={`h-[4px] flex-1 rounded-full ${index === activeIndex ? 'bg-ink' : 'bg-warm3'}`}
         />
       ))}
     </View>
@@ -76,22 +76,26 @@ function WheelColumn({
   onChange,
   width,
   align = 'center',
+  loop = false,
 }: {
   options: string[];
   selectedValue: string;
   onChange: (value: string) => void;
   width: number;
   align?: 'left' | 'center' | 'right';
+  loop?: boolean;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
+  const loopOffset = loop ? options.length : 0;
+  const wheelOptions = loop ? [...options, ...options, ...options] : options;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
-      y: selectedIndex * wheelItemHeight,
+      y: (selectedIndex + loopOffset) * wheelItemHeight,
       animated: false,
     });
-  }, [selectedIndex]);
+  }, [loopOffset, selectedIndex]);
 
   return (
     <View style={{ width, height: wheelHeight }}>
@@ -104,25 +108,34 @@ function WheelColumn({
         contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
         onMomentumScrollEnd={(event) => {
           const nextIndex = Math.round(event.nativeEvent.contentOffset.y / wheelItemHeight);
-          onChange(options[Math.max(0, Math.min(options.length - 1, nextIndex))]);
+          const boundedIndex = Math.max(0, Math.min(wheelOptions.length - 1, nextIndex));
+          const optionIndex = loop ? boundedIndex % options.length : boundedIndex;
+          onChange(options[optionIndex]);
+          if (loop) {
+            scrollRef.current?.scrollTo({
+              y: (optionIndex + loopOffset) * wheelItemHeight,
+              animated: false,
+            });
+          }
         }}
       >
-        {options.map((item, index) => {
-          const selected = index === selectedIndex;
+        {wheelOptions.map((item, index) => {
+          const selected = item === selectedValue;
           const justifyClassName =
             align === 'right' ? 'items-end' : align === 'left' ? 'items-start' : 'items-center';
           return (
             <Pressable
-              key={item}
+              key={`${item}-${index}`}
               onPress={() => onChange(item)}
               style={{ height: wheelItemHeight, paddingHorizontal: 8 }}
               className={`${justifyClassName} justify-center`}
+              testID={`onboarding-wheel-option-${item}`}
             >
               <Text
-                className={`tracking-[-0.2px] ${
+                className={`${
                   selected
-                    ? 'text-[24px] font-medium text-ink'
-                    : 'text-[18px] font-normal text-ink opacity-30'
+                    ? 'text-[18px] font-medium text-ink'
+                    : 'text-[13px] font-normal text-ink opacity-30'
                 }`}
               >
                 {item}
@@ -145,12 +158,16 @@ function TimeWheelPicker({
   const parsed = parseTimeValue(value);
 
   return (
-    <View className="relative items-center" style={{ height: wheelHeight, width: 324 }}>
+    <View
+      className="relative items-center"
+      style={{ height: wheelHeight, width: '100%', maxWidth: 292 }}
+      testID="onboarding-time-picker"
+    >
       <View
-        className="absolute left-0 right-0 rounded-[10px] bg-[rgba(35,36,34,0.04)]"
+        className="absolute left-0 right-0 rounded-[6px] bg-[rgba(35,36,34,0.05)]"
         style={{
-          top: (wheelHeight - 36) / 2,
-          height: 36,
+          top: (wheelHeight - 28) / 2,
+          height: 28,
         }}
       />
       <View
@@ -160,8 +177,9 @@ function TimeWheelPicker({
         <WheelColumn
           options={hourOptions}
           selectedValue={parsed.hour}
-          width={84}
+          width={72}
           align="right"
+          loop
           onChange={(nextHour) =>
             onChange(composeTimeValue(nextHour, parsed.minute, parsed.meridiem))
           }
@@ -169,7 +187,8 @@ function TimeWheelPicker({
         <WheelColumn
           options={minuteOptions}
           selectedValue={parsed.minute}
-          width={86}
+          width={72}
+          loop
           onChange={(nextMinute) =>
             onChange(composeTimeValue(parsed.hour, nextMinute, parsed.meridiem))
           }
@@ -177,7 +196,7 @@ function TimeWheelPicker({
         <WheelColumn
           options={meridiemOptions}
           selectedValue={parsed.meridiem}
-          width={92}
+          width={72}
           align="left"
           onChange={(nextMeridiem) =>
             onChange(composeTimeValue(parsed.hour, parsed.minute, nextMeridiem))
@@ -205,20 +224,33 @@ function renderOptionCard({
       onPress={onPress}
       className={`flex-row items-center justify-between px-5 ${
         centered
-          ? `h-[59px] rounded-[20px] border border-warm3 ${selected ? 'bg-ink' : 'bg-paper'}`
+          ? `min-h-[53px] rounded-2xl ${selected ? 'bg-ink' : 'border border-warm3 bg-paper'}`
           : `min-h-[53px] rounded-2xl ${selected ? 'bg-ink' : 'border border-warm3 bg-paper'}`
       }`}
     >
       <Text
         className={`${
           centered
-            ? `w-full text-center text-[22px] font-bold leading-[31px] tracking-[-0.44px] ${selected ? 'text-white' : 'text-ink'}`
+            ? `text-base ${selected ? 'font-semibold text-white' : 'text-ink'}`
             : `text-base ${selected ? 'font-semibold text-white' : 'text-ink'}`
         }`}
       >
         {option}
       </Text>
-      {!centered && selected ? <Text className="text-base font-bold text-accent">✓</Text> : null}
+      {selected ? (
+        <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
+          <View className="h-[13px] w-[15px]">
+            <View
+              className="absolute h-[2.5px] w-[8px] rounded-full bg-black"
+              style={{ transform: [{ rotate: '45deg' }], left: 0, top: 7 }}
+            />
+            <View
+              className="absolute h-[2.5px] w-[12px] rounded-full bg-black"
+              style={{ transform: [{ rotate: '-45deg' }], left: 4, top: 5 }}
+            />
+          </View>
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -228,6 +260,7 @@ export function OnboardingView({
   stepIndex,
   selectedValue,
   completed,
+  completionActionLabel = 'Get Started',
   onSelect,
   onBack,
   onNext,
@@ -237,7 +270,7 @@ export function OnboardingView({
       <CompletionState
         title="All set!"
         body="We'll build your perfect daily schedule around your rhythm."
-        actionLabel="Start planning"
+        actionLabel={completionActionLabel}
         onAction={onNext}
       />
     );
@@ -245,6 +278,7 @@ export function OnboardingView({
 
   const step = steps[stepIndex];
   const progressLabel = `${stepIndex + 1}/${steps.length}`;
+  const useMutedNextButton = stepIndex > 0;
   const canNext =
     step.kind === 'commitments'
       ? (() => {
@@ -261,15 +295,25 @@ export function OnboardingView({
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']}>
       <ScrollView contentContainerClassName="flex-grow pb-28 pt-20">
-        <View className="flex-row items-center gap-3 px-6">
+        <View className="flex-row items-center gap-4 px-6">
           <Pressable
             onPress={onBack}
             disabled={stepIndex === 0}
+            testID="onboarding-back-button"
             className={`h-[34px] w-[34px] items-center justify-center rounded-full ${
               stepIndex === 0 ? 'opacity-0' : 'bg-warm4'
             }`}
           >
-            <Text className="text-2xl text-ink">‹</Text>
+            <View className="h-[14px] w-[10px] justify-center">
+              <View
+                className="absolute h-[2px] w-[13px] rounded-full bg-warm"
+                style={{ transform: [{ rotate: '-45deg' }], top: 2, left: -1 }}
+              />
+              <View
+                className="absolute h-[2px] w-[13px] rounded-full bg-warm"
+                style={{ transform: [{ rotate: '45deg' }], bottom: 2, left: -1 }}
+              />
+            </View>
           </Pressable>
           <View className="flex-1">
             <OnboardingProgress total={steps.length} activeIndex={stepIndex} />
@@ -283,18 +327,21 @@ export function OnboardingView({
           <Text className="text-[11px] font-medium uppercase tracking-[1.8px] text-warm">
             Question {stepIndex + 1}
           </Text>
-          <Text className="mt-3 text-[30px] font-bold leading-[38px] tracking-[-0.9px] text-ink">
+          <Text className="mt-3 max-w-[285px] text-[20px] font-bold leading-[25px] text-ink">
             {step.question}
           </Text>
         </View>
 
         {step.kind === 'time' ? (
-          <View className="flex-1 items-center justify-center px-6 py-12">
+          <View className="flex-1 items-center justify-center px-6 pb-14 pt-10">
             <TimeWheelPicker
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
               onChange={onSelect}
             />
-            <Text className="mt-7 text-center text-[14px] tracking-[0.1px] text-warm">
+            <Text
+              className="mt-6 text-center text-[11px] text-warm"
+              testID="onboarding-time-helper"
+            >
               {step.helperLabel}:{' '}
               <Text className="font-semibold text-ink2">
                 {typeof selectedValue === 'string' ? selectedValue : ''}
@@ -320,8 +367,8 @@ export function OnboardingView({
                               : '7:00 AM',
                           endTime:
                             isCommitmentAnswer(selectedValue) && selectedValue.option === option
-                              ? (selectedValue.endTime ?? '9:00 AM')
-                              : '9:00 AM',
+                              ? (selectedValue.endTime ?? '7:00 AM')
+                              : '7:00 AM',
                         }
                       : { option },
                   ),
@@ -380,8 +427,8 @@ export function OnboardingView({
         <PillActionButton
           label="Next"
           disabled={!canNext}
-          buttonColor={canNext ? undefined : '#E8E3D7'}
-          textColor={canNext ? undefined : '#8A857A'}
+          buttonColor={useMutedNextButton || !canNext ? '#E8E3D7' : undefined}
+          textColor={useMutedNextButton || !canNext ? '#8A857A' : undefined}
           onPress={onNext}
         />
       </View>

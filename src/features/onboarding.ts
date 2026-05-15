@@ -54,7 +54,7 @@ export const onboardingSteps: OnboardingStep[] = [
 
 export const defaultOnboardingAnswers: Record<string, OnboardingAnswer> = {
   wake: '7:00 AM',
-  work: '9:00 AM',
+  work: '7:00 AM',
 };
 
 export function getVisibleOnboardingSteps(answers: Record<string, OnboardingAnswer>) {

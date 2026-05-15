@@ -86,8 +86,17 @@ export function CompletionState({
 }) {
   return (
     <View className="flex-1 items-center justify-center bg-paper px-6">
-      <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-accent">
-        <Text className="text-3xl font-bold text-ink">✓</Text>
+      <View className="h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-ink bg-accent">
+        <View className="h-[36px] w-[42px]">
+          <View
+            className="absolute h-[3px] w-[24px] rounded-full bg-ink"
+            style={{ transform: [{ rotate: '45deg' }], left: 0, top: 22 }}
+          />
+          <View
+            className="absolute h-[3px] w-[36px] rounded-full bg-ink"
+            style={{ transform: [{ rotate: '-45deg' }], left: 14, top: 18 }}
+          />
+        </View>
       </View>
       <Text className="mt-8 text-[26px] font-bold tracking-[-0.8px] text-ink">{title}</Text>
       <Text className="mt-4 max-w-[280px] text-center text-base leading-7 text-warm">{body}</Text>

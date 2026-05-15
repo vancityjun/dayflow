@@ -74,6 +74,7 @@ export function SettingsScreen({ navigation }: Props) {
       onCancel={() => navigation.goBack()}
       onSave={save}
       onRemove={remove}
+      onEditOnboardingProfile={() => navigation.navigate('Onboarding', { mode: 'edit' })}
       onOpenPreviewCatalog={__DEV__ ? () => navigation.navigate('PreviewCatalog') : undefined}
     />
   );

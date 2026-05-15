@@ -5,6 +5,7 @@ import type { ComponentProps } from 'react';
 import * as ReactNative from 'react-native';
 import { AIScheduleScreen } from './AIScheduleScreen';
 import { getOpenAIApiKey } from '../services/apiKey';
+import { getOnboardingProfile } from '../services/onboardingProfile';
 import { generateScheduleFromText } from '../services/openai';
 import { useTaskStore } from '../store/taskStore';
 import { useIsFocused } from '@react-navigation/native';
@@ -15,6 +16,11 @@ jest.mock('@react-navigation/native', () => ({
 
 jest.mock('../services/apiKey', () => ({
   getOpenAIApiKey: jest.fn(),
+}));
+
+jest.mock('../services/onboardingProfile', () => ({
+  getOnboardingProfile: jest.fn(),
+  formatOnboardingProfileForPrompt: jest.fn(() => '- Wake-up time: 7:00 AM'),
 }));
 
 jest.mock('../services/openai', () => ({
@@ -81,6 +87,7 @@ function renderAIScheduleScreen() {
 
 describe('AIScheduleScreen', () => {
   const getOpenAIApiKeyMock = jest.mocked(getOpenAIApiKey);
+  const getOnboardingProfileMock = jest.mocked(getOnboardingProfile);
   const generateScheduleFromTextMock = jest.mocked(generateScheduleFromText);
   const useTaskStoreMock = jest.mocked(useTaskStore);
   const useIsFocusedMock = jest.mocked(useIsFocused);
@@ -88,7 +95,9 @@ describe('AIScheduleScreen', () => {
   beforeEach(() => {
     lastAIScheduleViewProps = null;
     getOpenAIApiKeyMock.mockReset();
+    getOnboardingProfileMock.mockReset();
     generateScheduleFromTextMock.mockReset();
+    getOnboardingProfileMock.mockResolvedValue(null);
     useIsFocusedMock.mockReset();
     useIsFocusedMock.mockImplementation(() => true);
     useTaskStoreMock.mockReturnValue(createStoreState());
@@ -140,7 +149,11 @@ describe('AIScheduleScreen', () => {
       await lastAIScheduleViewProps?.onGenerate();
     });
 
-    expect(generateScheduleFromTextMock).toHaveBeenCalledWith('sk-new', ['Study React']);
+    expect(generateScheduleFromTextMock).toHaveBeenCalledWith(
+      'sk-new',
+      ['Study React'],
+      '- Wake-up time: 7:00 AM',
+    );
     expect(storeState.setPreviewTasks).toHaveBeenCalledTimes(1);
   });
 
