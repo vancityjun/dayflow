@@ -270,7 +270,12 @@ function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack:
 function WeeklyInsightPreview({ scenarioId, onBack }: { scenarioId: string; onBack: () => void }) {
   const tasks = scenarioId === 'weekly-empty' ? [] : makeCompletedHeavyTasks();
   return (
-    <WeeklyInsightView summary={buildWeeklyInsightSummary(tasks)} onOptimizeTomorrow={onBack} />
+    <WeeklyInsightView
+      summary={buildWeeklyInsightSummary(tasks)}
+      aiInsightsEnabled={scenarioId !== 'weekly-empty'}
+      darkModeEnabled={scenarioId === 'weekly-dark'}
+      onOptimizeTomorrow={onBack}
+    />
   );
 }
 

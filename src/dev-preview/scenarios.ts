@@ -10,5 +10,6 @@ export const previewScenarios = [
   { id: 'ai-preview', title: 'AI schedule · Generated preview' },
   { id: 'weekly-empty', title: 'Weekly Insight · Empty' },
   { id: 'weekly-data', title: 'Weekly Insight · Data' },
+  { id: 'weekly-dark', title: 'Weekly Insight · Dark' },
   { id: 'settings', title: 'Settings' },
 ] as const;
