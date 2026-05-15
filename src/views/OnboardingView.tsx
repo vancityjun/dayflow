@@ -17,7 +17,6 @@ export type OnboardingStep = {
   kind: 'time' | 'options' | 'commitments';
   helperLabel?: string;
   options?: readonly string[];
-  selectionStyle?: 'default' | 'centered';
 };
 
 type Props = {
@@ -239,13 +238,11 @@ function renderOptionCard({
   option,
   selected,
   onPress,
-  centered = false,
   darkModeEnabled = false,
 }: {
   option: string;
   selected: boolean;
   onPress: () => void;
-  centered?: boolean;
   darkModeEnabled?: boolean;
 }) {
   const selectedCardClass = darkModeEnabled ? 'bg-white' : 'bg-ink';
@@ -264,17 +261,11 @@ function renderOptionCard({
     <Pressable
       key={option}
       onPress={onPress}
-      className={`flex-row items-center justify-between px-5 ${
-        centered
-          ? `min-h-[53px] rounded-2xl ${selected ? selectedCardClass : unselectedCardClass}`
-          : `min-h-[53px] rounded-2xl ${selected ? selectedCardClass : unselectedCardClass}`
+      className={`min-h-[53px] flex-row items-center justify-between rounded-2xl px-5 ${
+        selected ? selectedCardClass : unselectedCardClass
       }`}
     >
-      <Text
-        className={`${centered ? `text-base ${optionTextClass}` : `text-base ${optionTextClass}`}`}
-      >
-        {option}
-      </Text>
+      <Text className={`text-base ${optionTextClass}`}>{option}</Text>
       {selected ? (
         <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
           <View className="h-[13px] w-[15px]">
@@ -502,7 +493,6 @@ export function OnboardingView({
                 option,
                 selected,
                 onPress: () => onSelect(option),
-                centered: step.selectionStyle === 'centered',
                 darkModeEnabled,
               });
             })}

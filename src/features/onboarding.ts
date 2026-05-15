@@ -18,7 +18,6 @@ export const onboardingSteps: OnboardingStep[] = [
     question: 'Do you have fixed commitments like school or work?',
     kind: 'options',
     options: ['Yes', 'No'],
-    selectionStyle: 'centered',
   },
   {
     id: 'commitment-time',
