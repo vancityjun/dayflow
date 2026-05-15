@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
+import { getDarkModeEnabled, saveDarkModeEnabled } from '../services/appearance';
 import { deleteOpenAIApiKey, getOpenAIApiKey, saveOpenAIApiKey } from '../services/apiKey';
 import { validateOpenAIApiKey } from '../services/openai';
 import { SettingsView } from '../views/SettingsView';
@@ -10,6 +11,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 export function SettingsScreen({ navigation }: Props) {
   const [apiKey, setApiKey] = useState('');
   const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
 
@@ -20,6 +22,10 @@ export function SettingsScreen({ navigation }: Props) {
         setApiKey(key ?? '');
       })
       .catch(() => setMessage('Could not load stored API key.'));
+
+    getDarkModeEnabled()
+      .then(setDarkModeEnabled)
+      .catch(() => setMessage('Could not load appearance settings.'));
   }, []);
 
   const save = async () => {
@@ -61,6 +67,17 @@ export function SettingsScreen({ navigation }: Props) {
     }
   };
 
+  const toggleDarkMode = async (enabled: boolean) => {
+    const previousValue = darkModeEnabled;
+    setDarkModeEnabled(enabled);
+    try {
+      await saveDarkModeEnabled(enabled);
+    } catch {
+      setDarkModeEnabled(previousValue);
+      setMessage('Could not save appearance settings.');
+    }
+  };
+
   return (
     <SettingsView
       apiKey={apiKey}
@@ -68,12 +85,14 @@ export function SettingsScreen({ navigation }: Props) {
       hasUnsavedApiKeyChange={Boolean(savedKey && apiKey.trim() !== savedKey)}
       message={message}
       validating={validating}
+      darkModeEnabled={darkModeEnabled}
       showPreviewCatalog={__DEV__}
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
       onCancel={() => navigation.goBack()}
       onSave={save}
       onRemove={remove}
+      onToggleDarkMode={toggleDarkMode}
       onEditOnboardingProfile={() => navigation.navigate('Onboarding', { mode: 'edit' })}
       onOpenPreviewCatalog={__DEV__ ? () => navigation.navigate('PreviewCatalog') : undefined}
     />

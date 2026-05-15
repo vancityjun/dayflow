@@ -4,6 +4,7 @@ import { act, render, waitFor } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
 import * as ReactNative from 'react-native';
 import { SettingsScreen } from './SettingsScreen';
+import { getDarkModeEnabled, saveDarkModeEnabled } from '../services/appearance';
 import { deleteOpenAIApiKey, getOpenAIApiKey, saveOpenAIApiKey } from '../services/apiKey';
 import { validateOpenAIApiKey } from '../services/openai';
 
@@ -11,6 +12,11 @@ jest.mock('../services/apiKey', () => ({
   deleteOpenAIApiKey: jest.fn(),
   getOpenAIApiKey: jest.fn(),
   saveOpenAIApiKey: jest.fn(),
+}));
+
+jest.mock('../services/appearance', () => ({
+  getDarkModeEnabled: jest.fn(),
+  saveDarkModeEnabled: jest.fn(),
 }));
 
 jest.mock('../services/openai', () => ({
@@ -61,6 +67,8 @@ function renderSettingsScreen() {
 
 describe('SettingsScreen', () => {
   const getOpenAIApiKeyMock = jest.mocked(getOpenAIApiKey);
+  const getDarkModeEnabledMock = jest.mocked(getDarkModeEnabled);
+  const saveDarkModeEnabledMock = jest.mocked(saveDarkModeEnabled);
   const saveOpenAIApiKeyMock = jest.mocked(saveOpenAIApiKey);
   const deleteOpenAIApiKeyMock = jest.mocked(deleteOpenAIApiKey);
   const validateOpenAIApiKeyMock = jest.mocked(validateOpenAIApiKey);
@@ -68,6 +76,10 @@ describe('SettingsScreen', () => {
   beforeEach(() => {
     lastSettingsViewProps = null;
     getOpenAIApiKeyMock.mockReset();
+    getDarkModeEnabledMock.mockReset();
+    getDarkModeEnabledMock.mockResolvedValue(false);
+    saveDarkModeEnabledMock.mockReset();
+    saveDarkModeEnabledMock.mockResolvedValue();
     saveOpenAIApiKeyMock.mockReset();
     deleteOpenAIApiKeyMock.mockReset();
     validateOpenAIApiKeyMock.mockReset();
@@ -179,5 +191,21 @@ describe('SettingsScreen', () => {
     });
 
     expect(navigation.navigate).toHaveBeenCalledWith('Onboarding', { mode: 'edit' });
+  });
+
+  it('loads and saves the dark mode preference', async () => {
+    getOpenAIApiKeyMock.mockResolvedValueOnce(null);
+    getDarkModeEnabledMock.mockResolvedValueOnce(true);
+
+    renderSettingsScreen();
+
+    await waitFor(() => expect(lastSettingsViewProps?.darkModeEnabled).toBe(true));
+
+    await act(async () => {
+      await lastSettingsViewProps?.onToggleDarkMode(false);
+    });
+
+    expect(saveDarkModeEnabledMock).toHaveBeenCalledWith(false);
+    expect(lastSettingsViewProps?.darkModeEnabled).toBe(false);
   });
 });

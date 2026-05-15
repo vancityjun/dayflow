@@ -6,6 +6,7 @@ import {
   getVisibleOnboardingSteps,
   onboardingSteps,
 } from '../features/onboarding';
+import { getDarkModeEnabled } from '../services/appearance';
 import { getOnboardingProfile, saveOnboardingProfile } from '../services/onboardingProfile';
 import { OnboardingView, type OnboardingAnswer } from '../views/OnboardingView';
 
@@ -17,6 +18,13 @@ export function OnboardingScreen({ navigation, route }: Props) {
   const [completed, setCompleted] = useState(false);
   const [answers, setAnswers] =
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
+  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+
+  useEffect(() => {
+    getDarkModeEnabled()
+      .then(setDarkModeEnabled)
+      .catch(() => setDarkModeEnabled(false));
+  }, []);
 
   useEffect(() => {
     if (!editMode) return;
@@ -44,6 +52,7 @@ export function OnboardingScreen({ navigation, route }: Props) {
       stepIndex={stepIndex}
       selectedValue={answers[step.id]}
       completed={completed}
+      darkModeEnabled={darkModeEnabled}
       onSelect={(value) => setAnswers((current) => ({ ...current, [step.id]: value }))}
       onBack={() => {
         const previousStep = visibleSteps[stepIndex - 1];

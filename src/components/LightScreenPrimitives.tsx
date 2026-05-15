@@ -78,30 +78,61 @@ export function CompletionState({
   body,
   actionLabel,
   onAction,
+  darkModeEnabled = false,
 }: {
   title: string;
   body: string;
   actionLabel: string;
   onAction: () => void;
+  darkModeEnabled?: boolean;
 }) {
   return (
-    <View className="flex-1 items-center justify-center bg-paper px-6">
-      <View className="h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] border-ink bg-accent">
+    <View
+      className={`flex-1 items-center justify-center px-6 ${
+        darkModeEnabled ? 'bg-[#151713]' : 'bg-paper'
+      }`}
+    >
+      <View
+        className={`h-[72px] w-[72px] items-center justify-center rounded-full border-[3px] bg-accent ${
+          darkModeEnabled ? 'border-white' : 'border-ink'
+        }`}
+      >
         <View className="h-[36px] w-[42px]">
           <View
-            className="absolute h-[3px] w-[24px] rounded-full bg-ink"
+            className={`absolute h-[3px] w-[24px] rounded-full ${
+              darkModeEnabled ? 'bg-white' : 'bg-ink'
+            }`}
             style={{ transform: [{ rotate: '45deg' }], left: 0, top: 22 }}
           />
           <View
-            className="absolute h-[3px] w-[36px] rounded-full bg-ink"
+            className={`absolute h-[3px] w-[36px] rounded-full ${
+              darkModeEnabled ? 'bg-white' : 'bg-ink'
+            }`}
             style={{ transform: [{ rotate: '-45deg' }], left: 14, top: 18 }}
           />
         </View>
       </View>
-      <Text className="mt-8 text-[26px] font-bold tracking-[-0.8px] text-ink">{title}</Text>
-      <Text className="mt-4 max-w-[280px] text-center text-base leading-7 text-warm">{body}</Text>
+      <Text
+        className={`mt-8 text-[26px] font-bold tracking-[-0.8px] ${
+          darkModeEnabled ? 'text-white' : 'text-ink'
+        }`}
+      >
+        {title}
+      </Text>
+      <Text
+        className={`mt-4 max-w-[280px] text-center text-base leading-7 ${
+          darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
+        }`}
+      >
+        {body}
+      </Text>
       <View className="mt-8 w-full">
-        <PillActionButton label={actionLabel} onPress={onAction} />
+        <PillActionButton
+          label={actionLabel}
+          onPress={onAction}
+          buttonColor={darkModeEnabled ? colors.white : undefined}
+          textColor={darkModeEnabled ? colors.ink : undefined}
+        />
       </View>
     </View>
   );

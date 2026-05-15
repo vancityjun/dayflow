@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Button, Snackbar, TextInput } from 'react-native-paper';
 import { ScreenTopBar } from '../components/ScreenTopBar';
 import { colors } from '../theme/colors';
@@ -10,12 +10,14 @@ type Props = {
   hasUnsavedApiKeyChange: boolean;
   message: string | null;
   validating: boolean;
+  darkModeEnabled: boolean;
   showPreviewCatalog: boolean;
   onDismissMessage: () => void;
   onChangeApiKey: (value: string) => void;
   onCancel: () => void;
   onSave: () => void;
   onRemove: () => void;
+  onToggleDarkMode: (enabled: boolean) => void;
   onEditOnboardingProfile: () => void;
   onOpenPreviewCatalog?: () => void;
 };
@@ -26,12 +28,14 @@ export function SettingsView({
   hasUnsavedApiKeyChange,
   message,
   validating,
+  darkModeEnabled,
   showPreviewCatalog,
   onDismissMessage,
   onChangeApiKey,
   onCancel,
   onSave,
   onRemove,
+  onToggleDarkMode,
   onEditOnboardingProfile,
   onOpenPreviewCatalog,
 }: Props) {
@@ -125,6 +129,39 @@ export function SettingsView({
             >
               Edit Onboarding Profile
             </Button>
+          </View>
+
+          <View className="mt-8 border-t border-warm3 pt-6">
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-warm">
+              Appearance
+            </Text>
+            <View className="mt-3 min-h-[58px] flex-row items-center justify-between rounded-2xl border border-warm3 bg-paper px-5">
+              <Text className="text-base text-ink">Dark Mode</Text>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: darkModeEnabled }}
+                onPress={() => onToggleDarkMode(!darkModeEnabled)}
+                className={`h-[30px] w-[52px] justify-center rounded-full px-[3px] ${
+                  darkModeEnabled ? 'items-end bg-accent' : 'items-start bg-[#E2E0DC]'
+                }`}
+                testID="dark-mode-toggle"
+              >
+                <View
+                  className={`h-6 w-6 rounded-full ${darkModeEnabled ? 'bg-ink' : 'bg-white'}`}
+                  style={
+                    darkModeEnabled
+                      ? undefined
+                      : {
+                          shadowColor: '#232422',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.16,
+                          shadowRadius: 2,
+                          elevation: 2,
+                        }
+                  }
+                />
+              </Pressable>
+            </View>
           </View>
 
           {showPreviewCatalog && onOpenPreviewCatalog ? (
