@@ -106,6 +106,7 @@ function WheelColumn({
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const momentumScrollingRef = useRef(false);
+  const fallbackCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
   const commitScrollSelection = (offsetY: number | undefined) => {
     if (typeof offsetY !== 'number' || !Number.isFinite(offsetY)) return;
@@ -115,6 +116,18 @@ function WheelColumn({
     const nextValue = options[optionIndex];
     if (nextValue) onChange(nextValue);
   };
+  const clearFallbackCommit = () => {
+    if (!fallbackCommitTimeoutRef.current) return;
+    clearTimeout(fallbackCommitTimeoutRef.current);
+    fallbackCommitTimeoutRef.current = null;
+  };
+  const scheduleFallbackCommit = (offsetY: number | undefined) => {
+    clearFallbackCommit();
+    fallbackCommitTimeoutRef.current = setTimeout(() => {
+      fallbackCommitTimeoutRef.current = null;
+      commitScrollSelection(offsetY);
+    }, 120);
+  };
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -122,6 +135,15 @@ function WheelColumn({
       animated: false,
     });
   }, [selectedIndex]);
+
+  useEffect(
+    () => () => {
+      if (fallbackCommitTimeoutRef.current) {
+        clearTimeout(fallbackCommitTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   return (
     <View style={{ width, height: wheelHeight }}>
@@ -135,6 +157,7 @@ function WheelColumn({
         overScrollMode="never"
         contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
         onMomentumScrollBegin={() => {
+          clearFallbackCommit();
           momentumScrollingRef.current = true;
         }}
         onScrollEndDrag={(event) => {
@@ -143,11 +166,13 @@ function WheelColumn({
             momentumScrollingRef.current ||
             (typeof velocityY === 'number' && Math.abs(velocityY) > 0.01)
           ) {
+            scheduleFallbackCommit(event.nativeEvent.contentOffset?.y);
             return;
           }
           commitScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
         onMomentumScrollEnd={(event) => {
+          clearFallbackCommit();
           momentumScrollingRef.current = false;
           commitScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
@@ -195,6 +220,20 @@ function TimeWheelPicker({
   darkModeEnabled: boolean;
 }) {
   const parsed = parseTimeValue(value);
+  const pendingTimeRef = useRef(parsed);
+
+  useEffect(() => {
+    pendingTimeRef.current = parseTimeValue(value);
+  }, [value]);
+
+  const updateTimePart = (part: 'hour' | 'minute' | 'meridiem', nextValue: string) => {
+    const nextTime = {
+      ...pendingTimeRef.current,
+      [part]: nextValue,
+    };
+    pendingTimeRef.current = nextTime;
+    onChange(composeTimeValue(nextTime.hour, nextTime.minute, nextTime.meridiem));
+  };
 
   return (
     <View
@@ -222,9 +261,7 @@ function TimeWheelPicker({
           align="right"
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-hour-wheel"
-          onChange={(nextHour) =>
-            onChange(composeTimeValue(nextHour, parsed.minute, parsed.meridiem))
-          }
+          onChange={(nextHour) => updateTimePart('hour', nextHour)}
         />
         <WheelColumn
           options={minuteOptions}
@@ -232,9 +269,7 @@ function TimeWheelPicker({
           width={86}
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-minute-wheel"
-          onChange={(nextMinute) =>
-            onChange(composeTimeValue(parsed.hour, nextMinute, parsed.meridiem))
-          }
+          onChange={(nextMinute) => updateTimePart('minute', nextMinute)}
         />
         <WheelColumn
           options={meridiemOptions}
@@ -243,9 +278,7 @@ function TimeWheelPicker({
           align="left"
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-meridiem-wheel"
-          onChange={(nextMeridiem) =>
-            onChange(composeTimeValue(parsed.hour, parsed.minute, nextMeridiem))
-          }
+          onChange={(nextMeridiem) => updateTimePart('meridiem', nextMeridiem)}
         />
       </View>
     </View>
@@ -318,6 +351,12 @@ export function OnboardingView({
   onBack,
   onNext,
 }: Props) {
+  const selectedValueRef = useRef(selectedValue);
+
+  useEffect(() => {
+    selectedValueRef.current = selectedValue;
+  }, [selectedValue]);
+
   if (completed) {
     return (
       <CompletionState
@@ -345,6 +384,22 @@ export function OnboardingView({
           );
         })()
       : Boolean(selectedValue);
+  const selectValue = (value: OnboardingAnswer) => {
+    selectedValueRef.current = value;
+    onSelect(value);
+  };
+  const updateCustomCommitmentTime = (field: 'startTime' | 'endTime', time: string) => {
+    const currentValue = selectedValueRef.current;
+    const currentCommitment =
+      isCommitmentAnswer(currentValue) && currentValue.option === customCommitmentOption
+        ? currentValue
+        : { option: customCommitmentOption, startTime: '7:00 AM', endTime: '7:00 AM' };
+    const nextValue = {
+      ...currentCommitment,
+      [field]: time,
+    };
+    selectValue(nextValue);
+  };
 
   return (
     <SafeAreaView
@@ -395,7 +450,7 @@ export function OnboardingView({
 
         <View className="px-6 pt-11">
           <Text
-            className={`text-[11px] font-medium uppercase tracking-[0.4px] ${
+            className={`text-[11px] font-medium uppercase ${
               darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
             }`}
           >
@@ -414,7 +469,7 @@ export function OnboardingView({
           <View className="flex-1 items-center justify-center px-6 pb-14 pt-10">
             <TimeWheelPicker
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
-              onChange={onSelect}
+              onChange={selectValue}
               darkModeEnabled={darkModeEnabled}
             />
             <Text
@@ -438,7 +493,7 @@ export function OnboardingView({
                 option,
                 selected,
                 onPress: () =>
-                  onSelect(
+                  selectValue(
                     option === customCommitmentOption
                       ? {
                           option,
@@ -474,12 +529,7 @@ export function OnboardingView({
                 <TimeWheelPicker
                   value={selectedValue.startTime}
                   darkModeEnabled={darkModeEnabled}
-                  onChange={(startTime) =>
-                    onSelect({
-                      ...selectedValue,
-                      startTime,
-                    })
-                  }
+                  onChange={(startTime) => updateCustomCommitmentTime('startTime', startTime)}
                 />
                 <View className="py-5">
                   <View className={`h-px ${darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-warm3'}`} />
@@ -494,12 +544,7 @@ export function OnboardingView({
                 <TimeWheelPicker
                   value={selectedValue.endTime}
                   darkModeEnabled={darkModeEnabled}
-                  onChange={(endTime) =>
-                    onSelect({
-                      ...selectedValue,
-                      endTime,
-                    })
-                  }
+                  onChange={(endTime) => updateCustomCommitmentTime('endTime', endTime)}
                 />
               </View>
             ) : null}
@@ -511,7 +556,7 @@ export function OnboardingView({
               return renderOptionCard({
                 option,
                 selected,
-                onPress: () => onSelect(option),
+                onPress: () => selectValue(option),
                 darkModeEnabled,
               });
             })}

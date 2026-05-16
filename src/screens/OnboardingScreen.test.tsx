@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PaperProvider } from 'react-native-paper';
 import type { RootStackParamList } from '../navigation/types';
@@ -165,6 +165,41 @@ describe('OnboardingScreen', () => {
     );
   });
 
+  it('commits a fast meridiem drag even when momentum end is not emitted', async () => {
+    jest.useFakeTimers();
+
+    try {
+      renderOnboardingScreen();
+
+      fireEvent(screen.getByTestId('onboarding-meridiem-wheel'), 'scrollEndDrag', {
+        nativeEvent: {
+          contentOffset: {
+            y: 34,
+          },
+          velocity: {
+            y: 1.2,
+          },
+        },
+      });
+
+      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+        'Wake-up time: 7:00 AM',
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(120);
+      });
+
+      await waitFor(() =>
+        expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
+          'Wake-up time: 7:00 PM',
+        ),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('uses five-minute steps when the user drags the minute wheel', async () => {
     renderOnboardingScreen();
 
@@ -268,6 +303,91 @@ describe('OnboardingScreen', () => {
         'Wake-up time: 12:55 AM',
       ),
     );
+  });
+
+  it('keeps fast custom commitment time wheel updates when saving the profile', async () => {
+    jest.useFakeTimers();
+
+    try {
+      renderOnboardingScreen();
+
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('Yes'));
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('Custom'));
+
+      const startHourWheel = screen.getAllByTestId('onboarding-hour-wheel')[0];
+      const startMinuteWheel = screen.getAllByTestId('onboarding-minute-wheel')[0];
+      const endHourWheel = screen.getAllByTestId('onboarding-hour-wheel')[1];
+      const endMinuteWheel = screen.getAllByTestId('onboarding-minute-wheel')[1];
+
+      fireEvent(startHourWheel, 'scrollEndDrag', {
+        nativeEvent: {
+          contentOffset: {
+            y: 8 * 34,
+          },
+          velocity: {
+            y: 1.2,
+          },
+        },
+      });
+      fireEvent(startMinuteWheel, 'scrollEndDrag', {
+        nativeEvent: {
+          contentOffset: {
+            y: 34,
+          },
+          velocity: {
+            y: 1.2,
+          },
+        },
+      });
+      fireEvent(endHourWheel, 'scrollEndDrag', {
+        nativeEvent: {
+          contentOffset: {
+            y: 10 * 34,
+          },
+          velocity: {
+            y: 1.2,
+          },
+        },
+      });
+      fireEvent(endMinuteWheel, 'scrollEndDrag', {
+        nativeEvent: {
+          contentOffset: {
+            y: 6 * 34,
+          },
+          velocity: {
+            y: 1.2,
+          },
+        },
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(120);
+      });
+
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('Morning'));
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('1-2 hours'));
+      fireEvent.press(screen.getByText('Next'));
+      fireEvent.press(screen.getByText('Study'));
+      fireEvent.press(screen.getByText('Next'));
+
+      await waitFor(() => expect(screen.getByText('All set!')).toBeOnTheScreen());
+      expect(saveOnboardingProfileMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          'commitment-time': {
+            option: 'Custom',
+            startTime: '9:05 AM',
+            endTime: '11:30 AM',
+          },
+        }),
+      );
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('uses the saved dark mode preference for onboarding colors', async () => {
