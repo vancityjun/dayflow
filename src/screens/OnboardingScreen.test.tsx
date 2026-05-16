@@ -183,7 +183,7 @@ describe('OnboardingScreen', () => {
     );
   });
 
-  it('updates the time wheel even when drag end includes velocity', async () => {
+  it('waits for momentum to finish before updating a fast time-wheel drag', async () => {
     renderOnboardingScreen();
 
     fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
@@ -197,11 +197,31 @@ describe('OnboardingScreen', () => {
       },
     });
 
+    expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent('Wake-up time: 7:00 AM');
+
+    fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'momentumScrollEnd', {
+      nativeEvent: {
+        contentOffset: {
+          y: 8 * 34,
+        },
+      },
+    });
+
     await waitFor(() =>
       expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
         'Wake-up time: 9:00 AM',
       ),
     );
+  });
+
+  it('ignores incomplete time wheel scroll events', () => {
+    renderOnboardingScreen();
+
+    fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
+      nativeEvent: {},
+    });
+
+    expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent('Wake-up time: 7:00 AM');
   });
 
   it('keeps hour and minute wheels clamped at their final values', async () => {

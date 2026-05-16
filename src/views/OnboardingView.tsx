@@ -105,11 +105,15 @@ function WheelColumn({
   testID?: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
+  const momentumScrollingRef = useRef(false);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
-  const commitScrollSelection = (offsetY: number) => {
+  const commitScrollSelection = (offsetY: number | undefined) => {
+    if (typeof offsetY !== 'number' || !Number.isFinite(offsetY)) return;
+
     const nextIndex = Math.round(offsetY / wheelItemHeight);
     const optionIndex = Math.max(0, Math.min(options.length - 1, nextIndex));
-    onChange(options[optionIndex]);
+    const nextValue = options[optionIndex];
+    if (nextValue) onChange(nextValue);
   };
 
   useEffect(() => {
@@ -130,11 +134,22 @@ function WheelColumn({
         bounces={false}
         overScrollMode="never"
         contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
+        onMomentumScrollBegin={() => {
+          momentumScrollingRef.current = true;
+        }}
         onScrollEndDrag={(event) => {
-          commitScrollSelection(event.nativeEvent.contentOffset.y);
+          const velocityY = event.nativeEvent.velocity?.y;
+          if (
+            momentumScrollingRef.current ||
+            (typeof velocityY === 'number' && Math.abs(velocityY) > 0.01)
+          ) {
+            return;
+          }
+          commitScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
         onMomentumScrollEnd={(event) => {
-          commitScrollSelection(event.nativeEvent.contentOffset.y);
+          momentumScrollingRef.current = false;
+          commitScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
       >
         {options.map((item, index) => {
