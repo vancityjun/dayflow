@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompletionState, PillActionButton } from '../components/LightScreenPrimitives';
 
@@ -34,6 +34,10 @@ type Props = {
 
 const wheelItemHeight = 34;
 const wheelHeight = 182;
+const hourWheelWidth = 104;
+const minuteWheelWidth = 96;
+const meridiemWheelWidth = 108;
+const timeWheelPickerWidth = hourWheelWidth + minuteWheelWidth + meridiemWheelWidth;
 const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const minuteOptions = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 const meridiemOptions = ['AM', 'PM'];
@@ -108,6 +112,7 @@ function WheelColumn({
   const momentumScrollingRef = useRef(false);
   const fallbackCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
+  const scrollY = useRef(new Animated.Value(selectedIndex * wheelItemHeight)).current;
   const commitScrollSelection = (offsetY: number | undefined) => {
     if (typeof offsetY !== 'number' || !Number.isFinite(offsetY)) return;
 
@@ -130,11 +135,12 @@ function WheelColumn({
   };
 
   useEffect(() => {
+    scrollY.setValue(selectedIndex * wheelItemHeight);
     scrollRef.current?.scrollTo({
       y: selectedIndex * wheelItemHeight,
       animated: false,
     });
-  }, [selectedIndex]);
+  }, [scrollY, selectedIndex]);
 
   useEffect(
     () => () => {
@@ -147,15 +153,23 @@ function WheelColumn({
 
   return (
     <View style={{ width, height: wheelHeight }}>
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollRef}
         testID={testID}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         snapToInterval={wheelItemHeight}
-        decelerationRate="fast"
+        decelerationRate="normal"
         bounces={false}
         overScrollMode="never"
-        contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
+        scrollEventThrottle={16}
+        contentContainerStyle={{
+          paddingVertical: (wheelHeight - wheelItemHeight) / 2,
+          paddingHorizontal: 10,
+        }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
         onMomentumScrollBegin={() => {
           clearFallbackCommit();
           momentumScrollingRef.current = true;
@@ -178,34 +192,51 @@ function WheelColumn({
         }}
       >
         {options.map((item, index) => {
-          const distance = Math.abs(index - selectedIndex);
-          const selected = distance === 0;
-          const fontSize = selected ? 24 : distance === 1 ? 22 : distance === 2 ? 18 : 13;
-          const opacity = selected ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.32 : 0.18;
+          const itemOffset = index * wheelItemHeight;
+          const inputRange = [
+            itemOffset - wheelItemHeight * 3,
+            itemOffset - wheelItemHeight * 2,
+            itemOffset - wheelItemHeight,
+            itemOffset,
+            itemOffset + wheelItemHeight,
+            itemOffset + wheelItemHeight * 2,
+            itemOffset + wheelItemHeight * 3,
+          ];
+          const animatedOpacity = scrollY.interpolate({
+            inputRange,
+            outputRange: [0.18, 0.32, 0.55, 1, 0.55, 0.32, 0.18],
+            extrapolate: 'clamp',
+          });
+          const animatedScale = scrollY.interpolate({
+            inputRange,
+            outputRange: [0.54, 0.75, 0.92, 1, 0.92, 0.75, 0.54],
+            extrapolate: 'clamp',
+          });
           const justifyClassName =
             align === 'right' ? 'items-end' : align === 'left' ? 'items-start' : 'items-center';
           return (
             <Pressable
               key={`${item}-${index}`}
               onPress={() => onChange(item)}
-              style={{ height: wheelItemHeight, paddingHorizontal: 8 }}
+              style={{ height: wheelItemHeight, width: '100%', paddingHorizontal: 12 }}
               className={`${justifyClassName} justify-center`}
+              hitSlop={{ top: 6, bottom: 6, left: 16, right: 16 }}
               testID={`onboarding-wheel-option-${item}`}
             >
-              <Text
-                className={`${
-                  selected
-                    ? `font-medium ${darkModeEnabled ? 'text-white' : 'text-ink'}`
-                    : `font-normal ${darkModeEnabled ? 'text-[#6D726A]' : 'text-ink'}`
-                }`}
-                style={{ fontSize, opacity }}
+              <Animated.Text
+                className={`font-medium ${darkModeEnabled ? 'text-white' : 'text-ink'}`}
+                style={{
+                  fontSize: 24,
+                  opacity: animatedOpacity,
+                  transform: [{ scale: animatedScale }],
+                }}
               >
                 {item}
-              </Text>
+              </Animated.Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -214,10 +245,14 @@ function TimeWheelPicker({
   value,
   onChange,
   darkModeEnabled,
+  onInteractionStart,
+  onInteractionEnd,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
   darkModeEnabled: boolean;
+  onInteractionStart?: () => void;
+  onInteractionEnd?: () => void;
 }) {
   const parsed = parseTimeValue(value);
   const pendingTimeRef = useRef(parsed);
@@ -238,7 +273,10 @@ function TimeWheelPicker({
   return (
     <View
       className="relative items-center"
-      style={{ height: wheelHeight, width: '100%', maxWidth: 326 }}
+      style={{ height: wheelHeight, width: '100%', maxWidth: timeWheelPickerWidth }}
+      onTouchStart={onInteractionStart}
+      onTouchEnd={onInteractionEnd}
+      onTouchCancel={onInteractionEnd}
       testID="onboarding-time-picker"
     >
       <View
@@ -257,7 +295,7 @@ function TimeWheelPicker({
         <WheelColumn
           options={hourOptions}
           selectedValue={parsed.hour}
-          width={84}
+          width={hourWheelWidth}
           align="right"
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-hour-wheel"
@@ -266,7 +304,7 @@ function TimeWheelPicker({
         <WheelColumn
           options={minuteOptions}
           selectedValue={parsed.minute}
-          width={86}
+          width={minuteWheelWidth}
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-minute-wheel"
           onChange={(nextMinute) => updateTimePart('minute', nextMinute)}
@@ -274,7 +312,7 @@ function TimeWheelPicker({
         <WheelColumn
           options={meridiemOptions}
           selectedValue={parsed.meridiem}
-          width={92}
+          width={meridiemWheelWidth}
           align="left"
           darkModeEnabled={darkModeEnabled}
           testID="onboarding-meridiem-wheel"
@@ -352,10 +390,26 @@ export function OnboardingView({
   onNext,
 }: Props) {
   const selectedValueRef = useRef(selectedValue);
+  const parentScrollLockCountRef = useRef(0);
+  const [screenScrollEnabled, setScreenScrollEnabled] = useState(true);
 
   useEffect(() => {
     selectedValueRef.current = selectedValue;
   }, [selectedValue]);
+
+  const lockScreenScroll = () => {
+    parentScrollLockCountRef.current += 1;
+    if (parentScrollLockCountRef.current === 1) {
+      setScreenScrollEnabled(false);
+    }
+  };
+
+  const unlockScreenScroll = () => {
+    parentScrollLockCountRef.current = Math.max(0, parentScrollLockCountRef.current - 1);
+    if (parentScrollLockCountRef.current === 0) {
+      setScreenScrollEnabled(true);
+    }
+  };
 
   if (completed) {
     return (
@@ -407,7 +461,11 @@ export function OnboardingView({
       edges={['top', 'bottom']}
       testID="onboarding-root"
     >
-      <ScrollView contentContainerClassName="flex-grow pb-28 pt-20">
+      <ScrollView
+        scrollEnabled={screenScrollEnabled}
+        nestedScrollEnabled
+        contentContainerClassName="flex-grow pb-28 pt-20"
+      >
         <View className="flex-row items-center gap-4 px-6">
           <Pressable
             onPress={onBack}
@@ -471,6 +529,8 @@ export function OnboardingView({
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
               onChange={selectValue}
               darkModeEnabled={darkModeEnabled}
+              onInteractionStart={lockScreenScroll}
+              onInteractionEnd={unlockScreenScroll}
             />
             <Text
               className={`mt-6 text-center text-[12px] ${
@@ -530,6 +590,8 @@ export function OnboardingView({
                   value={selectedValue.startTime}
                   darkModeEnabled={darkModeEnabled}
                   onChange={(startTime) => updateCustomCommitmentTime('startTime', startTime)}
+                  onInteractionStart={lockScreenScroll}
+                  onInteractionEnd={unlockScreenScroll}
                 />
                 <View className="py-5">
                   <View className={`h-px ${darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-warm3'}`} />
@@ -545,6 +607,8 @@ export function OnboardingView({
                   value={selectedValue.endTime}
                   darkModeEnabled={darkModeEnabled}
                   onChange={(endTime) => updateCustomCommitmentTime('endTime', endTime)}
+                  onInteractionStart={lockScreenScroll}
+                  onInteractionEnd={unlockScreenScroll}
                 />
               </View>
             ) : null}
