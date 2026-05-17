@@ -5,12 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PaperProvider } from 'react-native-paper';
 import type { RootStackParamList } from '../navigation/types';
 import { OnboardingScreen } from './OnboardingScreen';
-import { getDarkModeEnabled } from '../services/appearance';
 import { getOnboardingProfile, saveOnboardingProfile } from '../services/onboardingProfile';
-
-jest.mock('../services/appearance', () => ({
-  getDarkModeEnabled: jest.fn(),
-}));
 
 jest.mock('../services/onboardingProfile', () => ({
   getOnboardingProfile: jest.fn(),
@@ -39,13 +34,10 @@ function renderOnboardingScreen(params?: RootStackParamList['Onboarding']) {
 }
 
 describe('OnboardingScreen', () => {
-  const getDarkModeEnabledMock = jest.mocked(getDarkModeEnabled);
   const getOnboardingProfileMock = jest.mocked(getOnboardingProfile);
   const saveOnboardingProfileMock = jest.mocked(saveOnboardingProfile);
 
   beforeEach(() => {
-    getDarkModeEnabledMock.mockReset();
-    getDarkModeEnabledMock.mockImplementation(() => new Promise<boolean>(() => {}));
     getOnboardingProfileMock.mockReset();
     getOnboardingProfileMock.mockResolvedValue(null);
     saveOnboardingProfileMock.mockReset();
@@ -87,7 +79,7 @@ describe('OnboardingScreen', () => {
     expect(saveOnboardingProfileMock).toHaveBeenCalledWith(
       expect.objectContaining({
         wake: '7:00 AM',
-        work: '7:00 AM',
+        work: '9:00 AM',
         'commitment-presence': 'Yes',
         'commitment-time': { option: "I don't have fixed commitments" },
         focus: 'Morning',
@@ -388,16 +380,6 @@ describe('OnboardingScreen', () => {
     } finally {
       jest.useRealTimers();
     }
-  });
-
-  it('uses the saved dark mode preference for onboarding colors', async () => {
-    getDarkModeEnabledMock.mockResolvedValueOnce(true);
-
-    renderOnboardingScreen();
-
-    await waitFor(() => {
-      expect(screen.getByTestId('onboarding-root').props.className).toContain('bg-[#151713]');
-    });
   });
 
   it('loads a saved profile in edit mode and goes home after saving', async () => {

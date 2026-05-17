@@ -86,7 +86,7 @@ describe('onboardingProfile service', () => {
     expect(
       formatOnboardingProfileForPrompt({
         wake: '7:00 AM',
-        work: '7:00 AM',
+        work: '9:00 AM',
         'commitment-presence': 'Yes',
         'commitment-time': { option: 'Custom', startTime: '1:00 PM', endTime: '3:00 PM' },
         focus: 'Morning',
@@ -96,7 +96,7 @@ describe('onboardingProfile service', () => {
     ).toBe(
       [
         '- Wake-up time: 7:00 AM',
-        '- Work start time: 7:00 AM',
+        '- Work start time: 9:00 AM',
         '- Has fixed commitments: Yes',
         '- Fixed commitments: Custom, 1:00 PM - 3:00 PM',
         '- Focus best: Morning',

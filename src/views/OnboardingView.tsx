@@ -26,7 +26,6 @@ type Props = {
   completed: boolean;
   errorMessage?: string;
   completionActionLabel?: string;
-  darkModeEnabled?: boolean;
   onSelect: (value: OnboardingAnswer) => void;
   onBack: () => void;
   onNext: () => void;
@@ -43,29 +42,13 @@ const minuteOptions = Array.from({ length: 12 }, (_, index) => String(index * 5)
 const meridiemOptions = ['AM', 'PM'];
 const customCommitmentOption = 'Custom';
 
-function OnboardingProgress({
-  total,
-  activeIndex,
-  darkModeEnabled,
-}: {
-  total: number;
-  activeIndex: number;
-  darkModeEnabled: boolean;
-}) {
+function OnboardingProgress({ total, activeIndex }: { total: number; activeIndex: number }) {
   return (
     <View className="flex-row items-center gap-4" testID="onboarding-progress">
       {Array.from({ length: total }).map((_, index) => (
         <View
           key={index}
-          className={`h-[4px] flex-1 rounded-full ${
-            index === activeIndex
-              ? darkModeEnabled
-                ? 'bg-white'
-                : 'bg-ink'
-              : darkModeEnabled
-                ? 'bg-[#2A2D27]'
-                : 'bg-warm3'
-          }`}
+          className={`h-[4px] flex-1 rounded-full ${index === activeIndex ? 'bg-ink' : 'bg-warm3'}`}
         />
       ))}
     </View>
@@ -97,7 +80,6 @@ function WheelColumn({
   onChange,
   width,
   align = 'center',
-  darkModeEnabled,
   testID,
 }: {
   options: string[];
@@ -105,15 +87,14 @@ function WheelColumn({
   onChange: (value: string) => void;
   width: number;
   align?: 'left' | 'center' | 'right';
-  darkModeEnabled: boolean;
   testID?: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
   const momentumScrollingRef = useRef(false);
-  const fallbackCommitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fallbackSelectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
   const scrollY = useRef(new Animated.Value(selectedIndex * wheelItemHeight)).current;
-  const commitScrollSelection = (offsetY: number | undefined) => {
+  const applyScrollSelection = (offsetY: number | undefined) => {
     if (typeof offsetY !== 'number' || !Number.isFinite(offsetY)) return;
 
     const nextIndex = Math.round(offsetY / wheelItemHeight);
@@ -121,16 +102,16 @@ function WheelColumn({
     const nextValue = options[optionIndex];
     if (nextValue) onChange(nextValue);
   };
-  const clearFallbackCommit = () => {
-    if (!fallbackCommitTimeoutRef.current) return;
-    clearTimeout(fallbackCommitTimeoutRef.current);
-    fallbackCommitTimeoutRef.current = null;
+  const clearFallbackSelection = () => {
+    if (!fallbackSelectionTimeoutRef.current) return;
+    clearTimeout(fallbackSelectionTimeoutRef.current);
+    fallbackSelectionTimeoutRef.current = null;
   };
-  const scheduleFallbackCommit = (offsetY: number | undefined) => {
-    clearFallbackCommit();
-    fallbackCommitTimeoutRef.current = setTimeout(() => {
-      fallbackCommitTimeoutRef.current = null;
-      commitScrollSelection(offsetY);
+  const scheduleFallbackSelection = (offsetY: number | undefined) => {
+    clearFallbackSelection();
+    fallbackSelectionTimeoutRef.current = setTimeout(() => {
+      fallbackSelectionTimeoutRef.current = null;
+      applyScrollSelection(offsetY);
     }, 120);
   };
 
@@ -144,8 +125,8 @@ function WheelColumn({
 
   useEffect(
     () => () => {
-      if (fallbackCommitTimeoutRef.current) {
-        clearTimeout(fallbackCommitTimeoutRef.current);
+      if (fallbackSelectionTimeoutRef.current) {
+        clearTimeout(fallbackSelectionTimeoutRef.current);
       }
     },
     [],
@@ -171,7 +152,7 @@ function WheelColumn({
           useNativeDriver: true,
         })}
         onMomentumScrollBegin={() => {
-          clearFallbackCommit();
+          clearFallbackSelection();
           momentumScrollingRef.current = true;
         }}
         onScrollEndDrag={(event) => {
@@ -180,15 +161,15 @@ function WheelColumn({
             momentumScrollingRef.current ||
             (typeof velocityY === 'number' && Math.abs(velocityY) > 0.01)
           ) {
-            scheduleFallbackCommit(event.nativeEvent.contentOffset?.y);
+            scheduleFallbackSelection(event.nativeEvent.contentOffset?.y);
             return;
           }
-          commitScrollSelection(event.nativeEvent.contentOffset?.y);
+          applyScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
         onMomentumScrollEnd={(event) => {
-          clearFallbackCommit();
+          clearFallbackSelection();
           momentumScrollingRef.current = false;
-          commitScrollSelection(event.nativeEvent.contentOffset?.y);
+          applyScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
       >
         {options.map((item, index) => {
@@ -224,7 +205,7 @@ function WheelColumn({
               testID={`onboarding-wheel-option-${item}`}
             >
               <Animated.Text
-                className={`font-medium ${darkModeEnabled ? 'text-white' : 'text-ink'}`}
+                className="font-medium text-ink"
                 style={{
                   fontSize: 24,
                   opacity: animatedOpacity,
@@ -244,13 +225,11 @@ function WheelColumn({
 function TimeWheelPicker({
   value,
   onChange,
-  darkModeEnabled,
   onInteractionStart,
   onInteractionEnd,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
-  darkModeEnabled: boolean;
   onInteractionStart?: () => void;
   onInteractionEnd?: () => void;
 }) {
@@ -280,9 +259,7 @@ function TimeWheelPicker({
       testID="onboarding-time-picker"
     >
       <View
-        className={`absolute left-0 right-0 rounded-[10px] ${
-          darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-[rgba(35,36,34,0.05)]'
-        }`}
+        className="absolute left-0 right-0 rounded-[10px] bg-[rgba(35,36,34,0.05)]"
         style={{
           top: (wheelHeight - 36) / 2,
           height: 36,
@@ -297,7 +274,6 @@ function TimeWheelPicker({
           selectedValue={parsed.hour}
           width={hourWheelWidth}
           align="right"
-          darkModeEnabled={darkModeEnabled}
           testID="onboarding-hour-wheel"
           onChange={(nextHour) => updateTimePart('hour', nextHour)}
         />
@@ -305,7 +281,6 @@ function TimeWheelPicker({
           options={minuteOptions}
           selectedValue={parsed.minute}
           width={minuteWheelWidth}
-          darkModeEnabled={darkModeEnabled}
           testID="onboarding-minute-wheel"
           onChange={(nextMinute) => updateTimePart('minute', nextMinute)}
         />
@@ -314,7 +289,6 @@ function TimeWheelPicker({
           selectedValue={parsed.meridiem}
           width={meridiemWheelWidth}
           align="left"
-          darkModeEnabled={darkModeEnabled}
           testID="onboarding-meridiem-wheel"
           onChange={(nextMeridiem) => updateTimePart('meridiem', nextMeridiem)}
         />
@@ -327,24 +301,14 @@ function renderOptionCard({
   option,
   selected,
   onPress,
-  darkModeEnabled = false,
 }: {
   option: string;
   selected: boolean;
   onPress: () => void;
-  darkModeEnabled?: boolean;
 }) {
-  const selectedCardClass = darkModeEnabled ? 'bg-white' : 'bg-ink';
-  const unselectedCardClass = darkModeEnabled
-    ? 'border border-[#2A2D27] bg-[#1F211E]'
-    : 'border border-warm3 bg-white';
-  const optionTextClass = selected
-    ? darkModeEnabled
-      ? 'font-semibold text-ink'
-      : 'font-semibold text-white'
-    : darkModeEnabled
-      ? 'font-semibold text-white'
-      : 'font-semibold text-ink';
+  const selectedCardClass = 'bg-ink';
+  const unselectedCardClass = 'border border-warm3 bg-white';
+  const optionTextClass = selected ? 'font-semibold text-white' : 'font-semibold text-ink';
 
   return (
     <Pressable
@@ -359,15 +323,11 @@ function renderOptionCard({
         <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
           <View className="h-[13px] w-[15px]">
             <View
-              className={`absolute h-[2.5px] w-[8px] rounded-full ${
-                darkModeEnabled ? 'bg-white' : 'bg-black'
-              }`}
+              className="absolute h-[2.5px] w-[8px] rounded-full bg-black"
               style={{ transform: [{ rotate: '45deg' }], left: 0, top: 7 }}
             />
             <View
-              className={`absolute h-[2.5px] w-[12px] rounded-full ${
-                darkModeEnabled ? 'bg-white' : 'bg-black'
-              }`}
+              className="absolute h-[2.5px] w-[12px] rounded-full bg-black"
               style={{ transform: [{ rotate: '-45deg' }], left: 4, top: 5 }}
             />
           </View>
@@ -384,7 +344,6 @@ export function OnboardingView({
   completed,
   errorMessage,
   completionActionLabel = 'Get Started',
-  darkModeEnabled = false,
   onSelect,
   onBack,
   onNext,
@@ -418,7 +377,6 @@ export function OnboardingView({
         body="We'll build your perfect daily schedule around your rhythm."
         actionLabel={completionActionLabel}
         onAction={onNext}
-        darkModeEnabled={darkModeEnabled}
       />
     );
   }
@@ -456,11 +414,7 @@ export function OnboardingView({
   };
 
   return (
-    <SafeAreaView
-      className={`flex-1 ${darkModeEnabled ? 'bg-[#151713]' : 'bg-paper'}`}
-      edges={['top', 'bottom']}
-      testID="onboarding-root"
-    >
+    <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']} testID="onboarding-root">
       <ScrollView
         scrollEnabled={screenScrollEnabled}
         nestedScrollEnabled
@@ -472,53 +426,33 @@ export function OnboardingView({
             disabled={stepIndex === 0}
             testID="onboarding-back-button"
             className={`h-[34px] w-[34px] items-center justify-center rounded-full ${
-              stepIndex === 0 ? 'opacity-0' : darkModeEnabled ? 'bg-[#252822]' : 'bg-warm4'
+              stepIndex === 0 ? 'opacity-0' : 'bg-warm4'
             }`}
           >
             <View className="h-[14px] w-[10px] justify-center">
               <View
-                className={`absolute h-[2px] w-[13px] rounded-full ${
-                  darkModeEnabled ? 'bg-[#6D726A]' : 'bg-warm'
-                }`}
+                className="absolute h-[2px] w-[13px] rounded-full bg-warm"
                 style={{ transform: [{ rotate: '-45deg' }], top: 2, left: -1 }}
               />
               <View
-                className={`absolute h-[2px] w-[13px] rounded-full ${
-                  darkModeEnabled ? 'bg-[#6D726A]' : 'bg-warm'
-                }`}
+                className="absolute h-[2px] w-[13px] rounded-full bg-warm"
                 style={{ transform: [{ rotate: '45deg' }], bottom: 2, left: -1 }}
               />
             </View>
           </Pressable>
           <View className="flex-1">
-            <OnboardingProgress
-              total={steps.length}
-              activeIndex={stepIndex}
-              darkModeEnabled={darkModeEnabled}
-            />
+            <OnboardingProgress total={steps.length} activeIndex={stepIndex} />
           </View>
-          <Text
-            className={`text-[12px] font-medium tracking-[0.1px] ${
-              darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
-            }`}
-          >
+          <Text className="text-[12px] font-medium tracking-[0.1px] text-warm">
             {progressLabel}
           </Text>
         </View>
 
         <View className="px-6 pt-11">
-          <Text
-            className={`text-[11px] font-medium uppercase ${
-              darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
-            }`}
-          >
+          <Text className="text-[11px] font-medium uppercase text-warm">
             Question {stepIndex + 1}
           </Text>
-          <Text
-            className={`mt-3 max-w-[320px] text-[25px] font-bold leading-[31px] ${
-              darkModeEnabled ? 'text-white' : 'text-ink'
-            }`}
-          >
+          <Text className="mt-3 max-w-[320px] text-[25px] font-bold leading-[31px] text-ink">
             {step.question}
           </Text>
         </View>
@@ -528,18 +462,15 @@ export function OnboardingView({
             <TimeWheelPicker
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
               onChange={selectValue}
-              darkModeEnabled={darkModeEnabled}
               onInteractionStart={lockScreenScroll}
               onInteractionEnd={unlockScreenScroll}
             />
             <Text
-              className={`mt-6 text-center text-[12px] ${
-                darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
-              }`}
+              className="mt-6 text-center text-[12px] text-warm"
               testID="onboarding-time-helper"
             >
               {step.helperLabel}:{' '}
-              <Text className={`font-semibold ${darkModeEnabled ? 'text-white' : 'text-ink2'}`}>
+              <Text className="font-semibold text-ink2">
                 {typeof selectedValue === 'string' ? selectedValue : ''}
               </Text>
             </Text>
@@ -568,44 +499,29 @@ export function OnboardingView({
                         }
                       : { option },
                   ),
-                darkModeEnabled,
               });
             })}
 
             {isCommitmentAnswer(selectedValue) &&
             selectedValue.option === customCommitmentOption ? (
-              <View
-                className={`mt-1 rounded-[20px] border px-5 pb-4 pt-3 ${
-                  darkModeEnabled ? 'border-[#2A2D27] bg-[#151713]' : 'border-warm3 bg-paper'
-                }`}
-              >
-                <Text
-                  className={`pb-1 text-[11px] font-medium uppercase tracking-[1.43px] ${
-                    darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
-                  }`}
-                >
+              <View className="mt-1 rounded-[20px] border border-warm3 bg-paper px-5 pb-4 pt-3">
+                <Text className="pb-1 text-[11px] font-medium uppercase tracking-[1.43px] text-warm">
                   Start
                 </Text>
                 <TimeWheelPicker
                   value={selectedValue.startTime}
-                  darkModeEnabled={darkModeEnabled}
                   onChange={(startTime) => updateCustomCommitmentTime('startTime', startTime)}
                   onInteractionStart={lockScreenScroll}
                   onInteractionEnd={unlockScreenScroll}
                 />
                 <View className="py-5">
-                  <View className={`h-px ${darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-warm3'}`} />
+                  <View className="h-px bg-warm3" />
                 </View>
-                <Text
-                  className={`pb-1 text-[11px] font-medium uppercase tracking-[1.43px] ${
-                    darkModeEnabled ? 'text-[#8F938B]' : 'text-warm'
-                  }`}
-                >
+                <Text className="pb-1 text-[11px] font-medium uppercase tracking-[1.43px] text-warm">
                   End
                 </Text>
                 <TimeWheelPicker
                   value={selectedValue.endTime}
-                  darkModeEnabled={darkModeEnabled}
                   onChange={(endTime) => updateCustomCommitmentTime('endTime', endTime)}
                   onInteractionStart={lockScreenScroll}
                   onInteractionEnd={unlockScreenScroll}
@@ -621,48 +537,21 @@ export function OnboardingView({
                 option,
                 selected,
                 onPress: () => selectValue(option),
-                darkModeEnabled,
               });
             })}
           </View>
         )}
       </ScrollView>
 
-      <View
-        className={`absolute bottom-0 left-0 right-0 px-6 pb-7 pt-5 ${
-          darkModeEnabled ? 'bg-[#151713]' : 'bg-paper'
-        }`}
-      >
+      <View className="absolute bottom-0 left-0 right-0 bg-paper px-6 pb-7 pt-5">
         {errorMessage ? (
-          <Text
-            className={`mb-3 text-center text-sm ${
-              darkModeEnabled ? 'text-[#FFB4A8]' : 'text-danger'
-            }`}
-          >
-            {errorMessage}
-          </Text>
+          <Text className="mb-3 text-center text-sm text-danger">{errorMessage}</Text>
         ) : null}
         <PillActionButton
           label="Next"
           disabled={!canNext}
-          buttonColor={
-            darkModeEnabled
-              ? stepIndex === 0
-                ? '#FFFFFF'
-                : '#252822'
-              : useMutedNextButton || !canNext
-                ? '#E8E3D7'
-                : undefined
-          }
-          textColor={
-            darkModeEnabled
-              ? stepIndex === 0
-                ? '#232422'
-                : '#8F938B'
-              : useMutedNextButton || !canNext
-                ? '#8A857A'
-                : undefined
-          }
+          buttonColor={useMutedNextButton || !canNext ? '#E8E3D7' : undefined}
+          textColor={useMutedNextButton || !canNext ? '#8A857A' : undefined}
           labelStyle={{ fontSize: 17, fontWeight: '600' }}
           onPress={onNext}
         />

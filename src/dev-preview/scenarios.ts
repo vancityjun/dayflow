@@ -1,6 +1,5 @@
 export const previewScenarios = [
   { id: 'onboarding', title: 'Onboarding' },
-  { id: 'onboarding-dark', title: 'Onboarding · Dark' },
   { id: 'home-empty', title: 'Home · Empty day' },
   { id: 'home-active', title: 'Home · Active task' },
   { id: 'home-completed', title: 'Home · Completed-heavy' },

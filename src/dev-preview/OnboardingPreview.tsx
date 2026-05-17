@@ -7,11 +7,10 @@ import {
 import { OnboardingView, type OnboardingAnswer } from '../views/OnboardingView';
 
 type Props = {
-  darkModeEnabled?: boolean;
   onExit: () => void;
 };
 
-export function OnboardingPreview({ darkModeEnabled = false, onExit }: Props) {
+export function OnboardingPreview({ onExit }: Props) {
   const [currentStepId, setCurrentStepId] = useState(onboardingSteps[0].id);
   const [answers, setAnswers] =
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
@@ -29,7 +28,6 @@ export function OnboardingPreview({ darkModeEnabled = false, onExit }: Props) {
       stepIndex={stepIndex}
       selectedValue={answers[step.id]}
       completed={completed}
-      darkModeEnabled={darkModeEnabled}
       onSelect={(value) => {
         setAnswers((current) => ({ ...current, [step.id]: value }));
       }}

@@ -45,12 +45,7 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
   }
 
   if (scenario.id.startsWith('onboarding')) {
-    return (
-      <OnboardingPreview
-        darkModeEnabled={scenario.id === 'onboarding-dark'}
-        onExit={() => navigation.goBack()}
-      />
-    );
+    return <OnboardingPreview onExit={() => navigation.goBack()} />;
   }
 
   if (scenario.id.startsWith('task-')) {
@@ -288,7 +283,6 @@ function SettingsPreview({
 }) {
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   return (
@@ -298,7 +292,6 @@ function SettingsPreview({
       hasUnsavedApiKeyChange={false}
       message={message}
       validating={false}
-      darkModeEnabled={darkModeEnabled}
       showPreviewCatalog
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
@@ -312,7 +305,6 @@ function SettingsPreview({
         setSaved(false);
         setMessage('API key removed.');
       }}
-      onToggleDarkMode={setDarkModeEnabled}
       onEditOnboardingProfile={onBack}
       onOpenPreviewCatalog={onOpenPreviewCatalog}
     />
