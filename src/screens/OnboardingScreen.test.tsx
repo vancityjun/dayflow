@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { PaperProvider } from 'react-native-paper';
+import { Button, PaperProvider } from 'react-native-paper';
 import type { RootStackParamList } from '../navigation/types';
 import { OnboardingScreen } from './OnboardingScreen';
 import { getOnboardingProfile, saveOnboardingProfile } from '../services/onboardingProfile';
@@ -33,6 +33,11 @@ function renderOnboardingScreen(params?: RootStackParamList['Onboarding']) {
   };
 }
 
+function answerName(name = 'Chris') {
+  fireEvent.changeText(screen.getByTestId('onboarding-name-input'), name);
+  fireEvent.press(screen.getByText('Next'));
+}
+
 describe('OnboardingScreen', () => {
   const getOnboardingProfileMock = jest.mocked(getOnboardingProfile);
   const saveOnboardingProfileMock = jest.mocked(saveOnboardingProfile);
@@ -44,8 +49,12 @@ describe('OnboardingScreen', () => {
     saveOnboardingProfileMock.mockResolvedValue();
   });
 
-  it('walks through the full seven-step flow and saves the onboarding profile', async () => {
+  it('walks through the full eight-step flow and saves the onboarding profile', async () => {
     const { navigation } = renderOnboardingScreen();
+
+    expect(screen.getByText("What's your name?")).toBeOnTheScreen();
+    expect(screen.getByText('1/8')).toBeOnTheScreen();
+    answerName();
 
     expect(screen.getByText('What time do you usually wake up?')).toBeOnTheScreen();
     fireEvent.press(screen.getByText('Next'));
@@ -76,8 +85,11 @@ describe('OnboardingScreen', () => {
     fireEvent.press(screen.getByText('Next'));
 
     await waitFor(() => expect(screen.getByText('All set!')).toBeOnTheScreen());
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#01B224');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#FFFFFF');
     expect(saveOnboardingProfileMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        name: 'Chris',
         wake: '7:00 AM',
         work: '9:00 AM',
         'commitment-presence': 'Yes',
@@ -100,6 +112,7 @@ describe('OnboardingScreen', () => {
 
     renderOnboardingScreen();
 
+    answerName();
     fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Yes'));
@@ -129,6 +142,7 @@ describe('OnboardingScreen', () => {
   it('skips fixed-commitment time when the user says no', () => {
     renderOnboardingScreen();
 
+    answerName();
     fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Next'));
 
@@ -139,8 +153,74 @@ describe('OnboardingScreen', () => {
     expect(screen.getByText('When do you focus best?')).toBeOnTheScreen();
   });
 
+  it('uses the onboarding next button layout and text treatment', () => {
+    renderOnboardingScreen();
+
+    const nextButton = screen.UNSAFE_getByType(Button);
+
+    expect(nextButton.props.style).toMatchObject({ borderRadius: 999 });
+    expect(nextButton.props.style).not.toHaveProperty('opacity');
+    expect(nextButton.props.contentStyle).toMatchObject({
+      height: 52,
+      paddingHorizontal: 16,
+    });
+    expect(nextButton.props.labelStyle).toMatchObject({
+      fontSize: 15,
+      fontWeight: '700',
+      lineHeight: 15,
+      letterSpacing: -0.15,
+    });
+  });
+
+  it('uses the muted soft background for the onboarding back button after the first step', () => {
+    renderOnboardingScreen();
+
+    answerName();
+
+    expect(screen.getByTestId('onboarding-back-button').props.className).toContain('bg-warm3');
+  });
+
+  it('uses the active next button color when the current question has an answer', () => {
+    renderOnboardingScreen();
+
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#E8E3D7');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#8A857A');
+
+    fireEvent.changeText(screen.getByTestId('onboarding-name-input'), 'Chris');
+
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#01B224');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#FFFFFF');
+
+    fireEvent.press(screen.getByText('Next'));
+
+    expect(screen.getByText('What time do you usually wake up?')).toBeOnTheScreen();
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#01B224');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#FFFFFF');
+
+    fireEvent.press(screen.getByText('Next'));
+
+    expect(screen.getByText('When do you usually start working?')).toBeOnTheScreen();
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#01B224');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#FFFFFF');
+
+    fireEvent.press(screen.getByText('Next'));
+
+    expect(
+      screen.getByText('Do you have fixed commitments like school or work?'),
+    ).toBeOnTheScreen();
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#E8E3D7');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#8A857A');
+
+    fireEvent.press(screen.getByText('Yes'));
+
+    expect(screen.UNSAFE_getByType(Button).props.buttonColor).toBe('#01B224');
+    expect(screen.UNSAFE_getByType(Button).props.textColor).toBe('#FFFFFF');
+  });
+
   it('updates the meridiem selection when the user drags the time wheel', async () => {
     renderOnboardingScreen();
+
+    answerName();
 
     fireEvent(screen.getByTestId('onboarding-meridiem-wheel'), 'scrollEndDrag', {
       nativeEvent: {
@@ -162,6 +242,8 @@ describe('OnboardingScreen', () => {
 
     try {
       renderOnboardingScreen();
+
+      answerName();
 
       fireEvent(screen.getByTestId('onboarding-meridiem-wheel'), 'scrollEndDrag', {
         nativeEvent: {
@@ -195,6 +277,8 @@ describe('OnboardingScreen', () => {
   it('uses five-minute steps when the user drags the minute wheel', async () => {
     renderOnboardingScreen();
 
+    answerName();
+
     fireEvent(screen.getByTestId('onboarding-minute-wheel'), 'scrollEndDrag', {
       nativeEvent: {
         contentOffset: {
@@ -212,6 +296,8 @@ describe('OnboardingScreen', () => {
 
   it('waits for momentum to finish before updating a fast time-wheel drag', async () => {
     renderOnboardingScreen();
+
+    answerName();
 
     fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
       nativeEvent: {
@@ -244,6 +330,8 @@ describe('OnboardingScreen', () => {
   it('ignores incomplete time wheel scroll events', () => {
     renderOnboardingScreen();
 
+    answerName();
+
     fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
       nativeEvent: {},
     });
@@ -253,6 +341,8 @@ describe('OnboardingScreen', () => {
 
   it('keeps hour and minute wheels clamped at their final values', async () => {
     renderOnboardingScreen();
+
+    answerName();
 
     fireEvent(screen.getByTestId('onboarding-hour-wheel'), 'scrollEndDrag', {
       nativeEvent: {
@@ -303,6 +393,7 @@ describe('OnboardingScreen', () => {
     try {
       renderOnboardingScreen();
 
+      answerName();
       fireEvent.press(screen.getByText('Next'));
       fireEvent.press(screen.getByText('Next'));
       fireEvent.press(screen.getByText('Yes'));
@@ -384,6 +475,7 @@ describe('OnboardingScreen', () => {
 
   it('loads a saved profile in edit mode and goes home after saving', async () => {
     getOnboardingProfileMock.mockResolvedValueOnce({
+      name: 'Alex',
       wake: '8:00 AM',
       work: '7:00 AM',
       'commitment-presence': 'No',
@@ -393,12 +485,9 @@ describe('OnboardingScreen', () => {
     });
     const { navigation } = renderOnboardingScreen({ mode: 'edit' });
 
-    await waitFor(() =>
-      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
-        'Wake-up time: 8:00 AM',
-      ),
-    );
+    await waitFor(() => expect(screen.getByDisplayValue('Alex')).toBeOnTheScreen());
 
+    fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Next'));
     fireEvent.press(screen.getByText('Next'));
@@ -411,6 +500,7 @@ describe('OnboardingScreen', () => {
 
     expect(saveOnboardingProfileMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        name: 'Alex',
         wake: '8:00 AM',
         work: '7:00 AM',
         'commitment-presence': 'No',
@@ -437,6 +527,7 @@ describe('OnboardingScreen', () => {
     expect(screen.queryByText('Wake-up time: 7:00 AM')).not.toBeOnTheScreen();
 
     resolveProfile!({
+      name: 'Alex',
       wake: '8:00 AM',
       work: '9:00 AM',
       'commitment-presence': 'No',
@@ -445,10 +536,8 @@ describe('OnboardingScreen', () => {
       goal: 'Exercise',
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent(
-        'Wake-up time: 8:00 AM',
-      ),
-    );
+    await waitFor(() => expect(screen.getByDisplayValue('Alex')).toBeOnTheScreen());
+    fireEvent.press(screen.getByText('Next'));
+    expect(screen.getByTestId('onboarding-time-helper')).toHaveTextContent('Wake-up time: 8:00 AM');
   });
 });

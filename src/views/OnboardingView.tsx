@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompletionState, PillActionButton } from '../components/LightScreenPrimitives';
 
@@ -14,7 +14,7 @@ export type OnboardingAnswer = string | OnboardingCommitmentAnswer;
 export type OnboardingStep = {
   id: string;
   question: string;
-  kind: 'time' | 'options' | 'commitments';
+  kind: 'text' | 'time' | 'options' | 'commitments';
   helperLabel?: string;
   options?: readonly string[];
 };
@@ -383,7 +383,6 @@ export function OnboardingView({
 
   const step = steps[stepIndex];
   const progressLabel = `${stepIndex + 1}/${steps.length}`;
-  const useMutedNextButton = stepIndex > 0;
   const canNext =
     step.kind === 'commitments'
       ? (() => {
@@ -395,7 +394,9 @@ export function OnboardingView({
             selectedValue.endTime?.trim(),
           );
         })()
-      : Boolean(selectedValue);
+      : step.kind === 'text'
+        ? typeof selectedValue === 'string' && Boolean(selectedValue.trim())
+        : Boolean(selectedValue);
   const selectValue = (value: OnboardingAnswer) => {
     selectedValueRef.current = value;
     onSelect(value);
@@ -426,7 +427,7 @@ export function OnboardingView({
             disabled={stepIndex === 0}
             testID="onboarding-back-button"
             className={`h-[34px] w-[34px] items-center justify-center rounded-full ${
-              stepIndex === 0 ? 'opacity-0' : 'bg-warm4'
+              stepIndex === 0 ? 'opacity-0' : 'bg-warm3'
             }`}
           >
             <View className="h-[14px] w-[10px] justify-center">
@@ -457,7 +458,22 @@ export function OnboardingView({
           </Text>
         </View>
 
-        {step.kind === 'time' ? (
+        {step.kind === 'text' ? (
+          <View className="px-6 pt-20">
+            <TextInput
+              value={typeof selectedValue === 'string' ? selectedValue : ''}
+              onChangeText={selectValue}
+              placeholder="Your name"
+              placeholderTextColor="#A39E91"
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              testID="onboarding-name-input"
+              className="py-1 text-[32px] font-semibold leading-[38px] tracking-[0.51px] text-[#A39E91]"
+            />
+            <View className="mt-4 h-[2px] bg-warm3" />
+          </View>
+        ) : step.kind === 'time' ? (
           <View className="flex-1 items-center justify-center px-6 pb-14 pt-10">
             <TimeWheelPicker
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
@@ -466,7 +482,7 @@ export function OnboardingView({
               onInteractionEnd={unlockScreenScroll}
             />
             <Text
-              className="mt-6 text-center text-[12px] text-warm"
+              className="mt-6 text-center text-[13px] text-warm"
               testID="onboarding-time-helper"
             >
               {step.helperLabel}:{' '}
@@ -550,9 +566,9 @@ export function OnboardingView({
         <PillActionButton
           label="Next"
           disabled={!canNext}
-          buttonColor={useMutedNextButton || !canNext ? '#E8E3D7' : undefined}
-          textColor={useMutedNextButton || !canNext ? '#8A857A' : undefined}
-          labelStyle={{ fontSize: 17, fontWeight: '600' }}
+          buttonColor={!canNext ? '#E8E3D7' : '#01B224'}
+          textColor={!canNext ? '#8A857A' : undefined}
+          labelStyle={{ fontSize: 15, fontWeight: '700', lineHeight: 15, letterSpacing: -0.15 }}
           onPress={onNext}
         />
       </View>
