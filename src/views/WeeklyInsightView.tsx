@@ -68,7 +68,7 @@ export function WeeklyInsightView({
                     style={{
                       height: Math.max(4, (item.value / peak) * 52),
                       backgroundColor:
-                        item.value > 0 && item.value === peak ? '#01B224' : colors.warm3,
+                        item.value > 0 && item.value === peak ? colors.accent : colors.warm3,
                     }}
                     className="w-[15px] rounded-t-[3px]"
                   />
@@ -89,7 +89,7 @@ export function WeeklyInsightView({
               <View
                 testID="weekly-completion-progress-bar"
                 style={{ width: `${summary.completionPercent}%` }}
-                className="h-full rounded-full bg-[#01B224]"
+                className="h-full rounded-full bg-accent"
               />
             </View>
             <Text className={`mt-3 text-2xl font-bold tracking-[-1px] ${titleClass}`}>
@@ -160,7 +160,7 @@ export function WeeklyInsightView({
           <PillActionButton
             label="Optimize tomorrow's schedule →"
             onPress={onOptimizeTomorrow}
-            buttonColor="#01B224"
+            buttonColor={colors.accent}
             labelStyle={{ fontSize: 15 }}
           />
           <Text className={`mt-5 text-center text-xs ${warm2Class}`}>{summary.reflection}</Text>

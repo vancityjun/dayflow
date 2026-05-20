@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import type { WeeklyInsightSummary } from '../types/insight';
 import { WeeklyInsightView } from './WeeklyInsightView';
+import { colors } from '../theme/colors';
 
 const summary: WeeklyInsightSummary = {
   dateRange: 'Apr 21 - Apr 28',
@@ -74,13 +75,13 @@ describe('WeeklyInsightView', () => {
     renderWeeklyInsightView();
 
     expect(screen.getByTestId('weekly-time-chart-bar-10').props.style.backgroundColor).toBe(
-      '#01B224',
+      colors.accent,
     );
     expect(screen.getByTestId('weekly-time-chart-bar-12').props.style.backgroundColor).not.toBe(
-      '#01B224',
+      colors.accent,
     );
     expect(screen.getByTestId('weekly-completion-progress-bar').props.className).toContain(
-      'bg-[#01B224]',
+      'bg-accent',
     );
   });
 
@@ -100,13 +101,13 @@ describe('WeeklyInsightView', () => {
     });
 
     expect(screen.getByTestId('weekly-time-chart-bar-8').props.style.backgroundColor).toBe(
-      '#01B224',
+      colors.accent,
     );
     expect(screen.getByTestId('weekly-time-chart-bar-10').props.style.backgroundColor).toBe(
-      '#01B224',
+      colors.accent,
     );
     expect(screen.getByTestId('weekly-time-chart-bar-12').props.style.backgroundColor).not.toBe(
-      '#01B224',
+      colors.accent,
     );
   });
 });
