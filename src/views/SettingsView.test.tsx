@@ -13,14 +13,12 @@ function renderSettingsView(
     hasUnsavedApiKeyChange: false,
     message: null,
     validating: false,
-    darkModeEnabled: false,
     showPreviewCatalog: false,
     onDismissMessage: jest.fn(),
     onChangeApiKey: jest.fn(),
     onCancel: jest.fn(),
     onSave: jest.fn(),
     onRemove: jest.fn(),
-    onToggleDarkMode: jest.fn(),
     onEditOnboardingProfile: jest.fn(),
     ...overrideProps,
   };
@@ -93,17 +91,5 @@ describe('SettingsView', () => {
     fireEvent.press(screen.getByText('Edit Onboarding Profile'));
 
     expect(onEditOnboardingProfile).toHaveBeenCalledTimes(1);
-  });
-
-  it('shows the dark mode toggle in the appearance section', () => {
-    const onToggleDarkMode = jest.fn();
-    renderSettingsView({ darkModeEnabled: true, onToggleDarkMode });
-
-    expect(screen.getByText('Appearance')).toBeOnTheScreen();
-    expect(screen.getByText('Dark Mode')).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByTestId('dark-mode-toggle'));
-
-    expect(onToggleDarkMode).toHaveBeenCalledWith(false);
   });
 });

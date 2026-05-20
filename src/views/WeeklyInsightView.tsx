@@ -6,27 +6,27 @@ import { PillActionButton } from '../components/LightScreenPrimitives';
 type Props = {
   summary: WeeklyInsightSummary;
   aiInsightsEnabled?: boolean;
-  darkModeEnabled?: boolean;
   onOptimizeTomorrow: () => void;
 };
 
 export function WeeklyInsightView({
   summary,
   aiInsightsEnabled = false,
-  darkModeEnabled = false,
   onOptimizeTomorrow,
 }: Props) {
   const peak = Math.max(1, ...summary.timeChart.map((item) => item.value));
-  const surfaceClass = darkModeEnabled ? 'bg-[#151713]' : 'bg-paper';
-  const cardClass = darkModeEnabled ? 'border-[#2A2D27] bg-[#151713]' : 'border-warm3 bg-paper';
-  const mutedCardClass = darkModeEnabled ? 'bg-[#1F211E]' : 'bg-[rgba(35,36,34,0.04)]';
-  const suggestionClass = darkModeEnabled
-    ? 'border-[#8F938B] bg-[#151713]'
-    : 'border-warm2 bg-paper';
-  const titleClass = darkModeEnabled ? 'text-white' : 'text-ink';
-  const warmClass = darkModeEnabled ? 'text-[#8F938B]' : 'text-warm';
-  const warm2Class = darkModeEnabled ? 'text-[#6D726A]' : 'text-warm2';
-  const dividerClass = darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-warm3';
+  const peakChartLabel = summary.timeChart.reduce(
+    (best, item) => (item.value > best.value ? item : best),
+    summary.timeChart[0],
+  )?.label;
+  const surfaceClass = 'bg-paper';
+  const cardClass = 'border-warm3 bg-paper';
+  const mutedCardClass = 'bg-[rgba(35,36,34,0.04)]';
+  const suggestionClass = 'border-warm2 bg-paper';
+  const titleClass = 'text-ink';
+  const warmClass = 'text-warm';
+  const warm2Class = 'text-warm2';
+  const dividerClass = 'bg-warm3';
   const showAiInsights =
     aiInsightsEnabled && (summary.patterns.length > 0 || summary.suggestions.length > 0);
 
@@ -68,14 +68,11 @@ export function WeeklyInsightView({
               {summary.timeChart.map((item) => (
                 <View key={item.label} className="items-center gap-1">
                   <View
+                    testID={`weekly-time-chart-bar-${item.label}`}
                     style={{
                       height: Math.max(4, (item.value / peak) * 52),
                       backgroundColor:
-                        item.label === summary.timeChart[1]?.label
-                          ? colors.accent
-                          : darkModeEnabled
-                            ? '#252822'
-                            : colors.warm3,
+                        item.value > 0 && item.label === peakChartLabel ? '#01B224' : colors.warm3,
                     }}
                     className="w-[15px] rounded-t-[3px]"
                   />
@@ -92,12 +89,11 @@ export function WeeklyInsightView({
             <Text className={`text-[10px] font-bold uppercase tracking-[1.2px] ${warmClass}`}>
               Completion
             </Text>
-            <View
-              className={`mt-4 h-1.5 overflow-hidden rounded-full ${darkModeEnabled ? 'bg-[#2A2D27]' : 'bg-warm3'}`}
-            >
+            <View className="mt-4 h-1.5 overflow-hidden rounded-full bg-warm3">
               <View
+                testID="weekly-completion-progress-bar"
                 style={{ width: `${summary.completionPercent}%` }}
-                className={`h-full rounded-full ${darkModeEnabled ? 'bg-white' : 'bg-ink'}`}
+                className="h-full rounded-full bg-[#01B224]"
               />
             </View>
             <Text className={`mt-3 text-2xl font-bold tracking-[-1px] ${titleClass}`}>
@@ -130,9 +126,7 @@ export function WeeklyInsightView({
                     >
                       {pattern.label}
                     </Text>
-                    <View
-                      className={`my-2 h-[1.5px] w-4 rounded-full ${darkModeEnabled ? 'bg-[#8F938B]' : 'bg-warm2'}`}
-                    />
+                    <View className="my-2 h-[1.5px] w-4 rounded-full bg-warm2" />
                     <Text className={`text-[13px] leading-4 tracking-[-0.1px] ${warmClass}`}>
                       {pattern.text}
                     </Text>
@@ -157,7 +151,7 @@ export function WeeklyInsightView({
                       {suggestion.text}
                     </Text>
                     <Text className={`mt-3 text-right text-xs font-medium ${warmClass}`}>
-                      {suggestion.action} {'->'}
+                      {suggestion.action} →
                     </Text>
                   </View>
                 ))}
@@ -168,10 +162,10 @@ export function WeeklyInsightView({
 
         <View className="px-6">
           <PillActionButton
-            label={`Optimize tomorrow's schedule ->`}
+            label="Optimize tomorrow's schedule →"
             onPress={onOptimizeTomorrow}
-            buttonColor={darkModeEnabled ? colors.white : undefined}
-            textColor={darkModeEnabled ? colors.ink : undefined}
+            buttonColor="#01B224"
+            labelStyle={{ fontSize: 15 }}
           />
           <Text className={`mt-5 text-center text-xs ${warm2Class}`}>{summary.reflection}</Text>
         </View>

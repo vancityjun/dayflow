@@ -41,7 +41,6 @@ function renderWeeklyInsightView(
       <WeeklyInsightView
         summary={summary}
         aiInsightsEnabled={false}
-        darkModeEnabled={false}
         onOptimizeTomorrow={jest.fn()}
         {...overrideProps}
       />
@@ -71,9 +70,17 @@ describe('WeeklyInsightView', () => {
     ).toBeOnTheScreen();
   });
 
-  it('uses dark mode colors when enabled', () => {
-    renderWeeklyInsightView({ darkModeEnabled: true });
+  it('uses green for the peak time bar and completed progress', () => {
+    renderWeeklyInsightView();
 
-    expect(screen.getByTestId('weekly-insight-root').props.className).toContain('bg-[#151713]');
+    expect(screen.getByTestId('weekly-time-chart-bar-10').props.style.backgroundColor).toBe(
+      '#01B224',
+    );
+    expect(screen.getByTestId('weekly-time-chart-bar-12').props.style.backgroundColor).not.toBe(
+      '#01B224',
+    );
+    expect(screen.getByTestId('weekly-completion-progress-bar').props.className).toContain(
+      'bg-[#01B224]',
+    );
   });
 });
