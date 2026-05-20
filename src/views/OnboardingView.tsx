@@ -24,6 +24,7 @@ type Props = {
   stepIndex: number;
   selectedValue: OnboardingAnswer | undefined;
   completed: boolean;
+  saving?: boolean;
   errorMessage?: string;
   completionActionLabel?: string;
   onSelect: (value: OnboardingAnswer) => void;
@@ -342,6 +343,7 @@ export function OnboardingView({
   stepIndex,
   selectedValue,
   completed,
+  saving = false,
   errorMessage,
   completionActionLabel = 'Get Started',
   onSelect,
@@ -565,7 +567,8 @@ export function OnboardingView({
         ) : null}
         <PillActionButton
           label="Next"
-          disabled={!canNext}
+          disabled={!canNext || saving}
+          loading={saving}
           buttonColor={!canNext ? '#E8E3D7' : '#01B224'}
           textColor={!canNext ? '#8A857A' : undefined}
           labelStyle={{ fontSize: 15, fontWeight: '700', lineHeight: 15, letterSpacing: -0.15 }}

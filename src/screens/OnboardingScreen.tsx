@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import {
@@ -19,6 +19,8 @@ export function OnboardingScreen({ navigation, route }: Props) {
     useState<Record<string, OnboardingAnswer>>(defaultOnboardingAnswers);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(editMode);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (!editMode) {
@@ -62,6 +64,7 @@ export function OnboardingScreen({ navigation, route }: Props) {
       stepIndex={stepIndex}
       selectedValue={answers[step.id]}
       completed={completed}
+      saving={saving}
       errorMessage={saveError ?? undefined}
       onSelect={(value) => {
         setSaveError(null);
@@ -80,12 +83,18 @@ export function OnboardingScreen({ navigation, route }: Props) {
         }
         const nextStep = visibleSteps[stepIndex + 1];
         if (!nextStep) {
+          if (savingRef.current) return;
+          savingRef.current = true;
+          setSaving(true);
           try {
             setSaveError(null);
             await saveOnboardingProfile(answers);
             setCompleted(true);
           } catch {
             setSaveError("Couldn't save your onboarding profile. Please try again.");
+          } finally {
+            savingRef.current = false;
+            setSaving(false);
           }
           return;
         }

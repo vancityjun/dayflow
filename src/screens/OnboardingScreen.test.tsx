@@ -139,6 +139,43 @@ describe('OnboardingScreen', () => {
     expect(saveOnboardingProfileMock).toHaveBeenCalledTimes(2);
   });
 
+  it('prevents duplicate profile saves while the final save is running', async () => {
+    let resolveSave: () => void = () => {};
+    saveOnboardingProfileMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+
+    renderOnboardingScreen();
+
+    answerName();
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Yes'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText("I don't have fixed commitments"));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Morning'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('1-2 hours'));
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Study'));
+
+    fireEvent.press(screen.getByText('Next'));
+    fireEvent.press(screen.getByText('Next'));
+
+    expect(saveOnboardingProfileMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.UNSAFE_getByType(Button).props.loading).toBe(true));
+
+    await act(async () => {
+      resolveSave();
+    });
+
+    await waitFor(() => expect(screen.getByText('All set!')).toBeOnTheScreen());
+  });
+
   it('skips fixed-commitment time when the user says no', () => {
     renderOnboardingScreen();
 
