@@ -15,10 +15,6 @@ export function WeeklyInsightView({
   onOptimizeTomorrow,
 }: Props) {
   const peak = Math.max(1, ...summary.timeChart.map((item) => item.value));
-  const peakChartLabel = summary.timeChart.reduce(
-    (best, item) => (item.value > best.value ? item : best),
-    summary.timeChart[0],
-  )?.label;
   const surfaceClass = 'bg-paper';
   const cardClass = 'border-warm3 bg-paper';
   const mutedCardClass = 'bg-[rgba(35,36,34,0.04)]';
@@ -72,7 +68,7 @@ export function WeeklyInsightView({
                     style={{
                       height: Math.max(4, (item.value / peak) * 52),
                       backgroundColor:
-                        item.value > 0 && item.label === peakChartLabel ? '#01B224' : colors.warm3,
+                        item.value > 0 && item.value === peak ? '#01B224' : colors.warm3,
                     }}
                     className="w-[15px] rounded-t-[3px]"
                   />

@@ -83,4 +83,30 @@ describe('WeeklyInsightView', () => {
       'bg-[#01B224]',
     );
   });
+
+  it('highlights every tied peak time bar in green', () => {
+    renderWeeklyInsightView({
+      summary: {
+        ...summary,
+        timeChart: [
+          { label: '8', value: 4 },
+          { label: '10', value: 4 },
+          { label: '12', value: 2 },
+          { label: '2', value: 0 },
+          { label: '4', value: 0 },
+          { label: '6', value: 0 },
+        ],
+      },
+    });
+
+    expect(screen.getByTestId('weekly-time-chart-bar-8').props.style.backgroundColor).toBe(
+      '#01B224',
+    );
+    expect(screen.getByTestId('weekly-time-chart-bar-10').props.style.backgroundColor).toBe(
+      '#01B224',
+    );
+    expect(screen.getByTestId('weekly-time-chart-bar-12').props.style.backgroundColor).not.toBe(
+      '#01B224',
+    );
+  });
 });
