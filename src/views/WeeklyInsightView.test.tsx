@@ -71,6 +71,15 @@ describe('WeeklyInsightView', () => {
     ).toBeOnTheScreen();
   });
 
+  it('shows the insight bottom navigation', () => {
+    renderWeeklyInsightView();
+
+    expect(screen.getByTestId('weekly-bottom-navigation')).toBeOnTheScreen();
+    expect(screen.getByText('Home')).toBeOnTheScreen();
+    expect(screen.getByText('Insight')).toBeOnTheScreen();
+    expect(screen.getByText('My Page')).toBeOnTheScreen();
+  });
+
   it('uses green for the peak time bar and completed progress', () => {
     renderWeeklyInsightView();
 

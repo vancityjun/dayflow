@@ -9,6 +9,94 @@ type Props = {
   onOptimizeTomorrow: () => void;
 };
 
+function HomeTabIcon({ active }: { active: boolean }) {
+  const colorClass = active ? 'bg-ink' : 'bg-warm2';
+  const borderClass = active ? 'border-ink' : 'border-warm2';
+
+  return (
+    <View className={`h-[18px] w-[18px] rounded-[3px] border ${borderClass}`}>
+      <View
+        className={`absolute left-[3px] top-[-3px] h-[5px] w-[1.5px] rounded-full ${colorClass}`}
+      />
+      <View
+        className={`absolute right-[3px] top-[-3px] h-[5px] w-[1.5px] rounded-full ${colorClass}`}
+      />
+      <View className={`mt-[4px] h-px w-full ${colorClass}`} />
+      <View className="mt-[3px] flex-row justify-center gap-[1.5px]">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <View key={index} className={`h-[1.5px] w-[1.5px] rounded-full ${colorClass}`} />
+        ))}
+      </View>
+      <View className="mt-[2px] flex-row justify-center gap-[1.5px]">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <View key={index} className={`h-[1.5px] w-[1.5px] rounded-full ${colorClass}`} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function InsightTabIcon({ active }: { active: boolean }) {
+  const colorClass = active ? 'bg-ink' : 'bg-warm2';
+  const bars = [8, 13, 18];
+
+  return (
+    <View className="h-[20px] w-[20px] flex-row items-end justify-center gap-[2px]">
+      {bars.map((height, index) => (
+        <View key={index} className={`w-[2px] rounded-full ${colorClass}`} style={{ height }} />
+      ))}
+    </View>
+  );
+}
+
+function MyPageTabIcon({ active }: { active: boolean }) {
+  const borderClass = active ? 'border-ink' : 'border-warm2';
+
+  return (
+    <View className="h-[20px] w-[20px] items-center">
+      <View className={`h-[7px] w-[7px] rounded-full border ${borderClass}`} />
+      <View className={`mt-[4px] h-[7px] w-[17px] rounded-t-full border ${borderClass}`} />
+    </View>
+  );
+}
+
+function WeeklyInsightBottomNavigation() {
+  const tabs = [
+    { key: 'home', label: 'Home', active: false, Icon: HomeTabIcon },
+    { key: 'insight', label: 'Insight', active: true, Icon: InsightTabIcon },
+    { key: 'my-page', label: 'My Page', active: false, Icon: MyPageTabIcon },
+  ];
+
+  return (
+    <View
+      className="absolute bottom-0 left-0 right-0 h-[82px] border-t border-warm3 bg-paper"
+      testID="weekly-bottom-navigation"
+    >
+      <View className="h-[3px] flex-row gap-1 px-4">
+        {tabs.map((tab) => (
+          <View key={tab.key} className="flex-1 items-center">
+            {tab.active ? <View className="h-[3px] w-[80px] rounded-full bg-accent" /> : null}
+          </View>
+        ))}
+      </View>
+      <View className="h-[79px] flex-row items-start gap-1 px-4 pt-5">
+        {tabs.map(({ key, label, active, Icon }) => (
+          <View key={key} className="flex-1 items-center">
+            <Icon active={active} />
+            <Text
+              className={`mt-1 text-[12px] ${
+                active ? 'font-semibold text-ink' : 'font-normal text-warm2'
+              }`}
+            >
+              {label}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function WeeklyInsightView({
   summary,
   aiInsightsEnabled = false,
@@ -28,7 +116,7 @@ export function WeeklyInsightView({
 
   return (
     <View className={`flex-1 ${surfaceClass}`} testID="weekly-insight-root">
-      <ScrollView contentContainerClassName="pb-8 pt-5">
+      <ScrollView contentContainerClassName="pb-36 pt-5">
         <View className="px-6 pb-6">
           <Text className={`text-[11px] font-medium uppercase tracking-[2px] ${warmClass}`}>
             {summary.dateRange}
@@ -166,6 +254,7 @@ export function WeeklyInsightView({
           <Text className={`mt-5 text-center text-xs ${warm2Class}`}>{summary.reflection}</Text>
         </View>
       </ScrollView>
+      <WeeklyInsightBottomNavigation />
     </View>
   );
 }

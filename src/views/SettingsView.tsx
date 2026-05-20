@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Button, Snackbar, TextInput } from 'react-native-paper';
 import { ScreenTopBar } from '../components/ScreenTopBar';
 import { colors } from '../theme/colors';
@@ -11,12 +11,14 @@ type Props = {
   message: string | null;
   validating: boolean;
   showPreviewCatalog: boolean;
+  aiSuggestionEnabled: boolean;
   onDismissMessage: () => void;
   onChangeApiKey: (value: string) => void;
   onCancel: () => void;
   onSave: () => void;
   onRemove: () => void;
   onEditOnboardingProfile: () => void;
+  onToggleAiSuggestion: (enabled: boolean) => void;
   onOpenPreviewCatalog?: () => void;
 };
 
@@ -27,12 +29,14 @@ export function SettingsView({
   message,
   validating,
   showPreviewCatalog,
+  aiSuggestionEnabled,
   onDismissMessage,
   onChangeApiKey,
   onCancel,
   onSave,
   onRemove,
   onEditOnboardingProfile,
+  onToggleAiSuggestion,
   onOpenPreviewCatalog,
 }: Props) {
   const [hideApiKey, setHideApiKey] = useState(false);
@@ -125,6 +129,23 @@ export function SettingsView({
             >
               Edit Onboarding Profile
             </Button>
+            <View className="mt-4 flex-row items-center justify-between rounded-2xl border border-warm3 bg-paper px-4 py-3">
+              <View className="flex-1 pr-4">
+                <Text className="text-base font-medium text-ink">AI Suggestion</Text>
+                <Text className="mt-1 text-sm text-warm">Get Suggestion</Text>
+              </View>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: aiSuggestionEnabled }}
+                onPress={() => onToggleAiSuggestion(!aiSuggestionEnabled)}
+                className={`h-[31px] w-[51px] justify-center rounded-full px-0.5 ${
+                  aiSuggestionEnabled ? 'items-end bg-accent' : 'items-start bg-warm3'
+                }`}
+                testID="ai-suggestion-switch"
+              >
+                <View className="h-[27px] w-[27px] rounded-full bg-paper" />
+              </Pressable>
+            </View>
           </View>
 
           {showPreviewCatalog && onOpenPreviewCatalog ? (

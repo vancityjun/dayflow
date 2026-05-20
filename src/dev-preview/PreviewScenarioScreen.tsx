@@ -330,6 +330,7 @@ function SettingsPreview({
 }) {
   const [apiKey, setApiKey] = useState('');
   const [saved, setSaved] = useState(false);
+  const [aiSuggestionEnabled, setAiSuggestionEnabled] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
   return (
@@ -340,6 +341,7 @@ function SettingsPreview({
       message={message}
       validating={false}
       showPreviewCatalog
+      aiSuggestionEnabled={aiSuggestionEnabled}
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
       onCancel={onBack}
@@ -353,6 +355,7 @@ function SettingsPreview({
         setMessage('API key removed.');
       }}
       onEditOnboardingProfile={onBack}
+      onToggleAiSuggestion={setAiSuggestionEnabled}
       onOpenPreviewCatalog={onOpenPreviewCatalog}
     />
   );

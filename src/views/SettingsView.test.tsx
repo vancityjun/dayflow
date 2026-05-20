@@ -14,12 +14,14 @@ function renderSettingsView(
     message: null,
     validating: false,
     showPreviewCatalog: false,
+    aiSuggestionEnabled: true,
     onDismissMessage: jest.fn(),
     onChangeApiKey: jest.fn(),
     onCancel: jest.fn(),
     onSave: jest.fn(),
     onRemove: jest.fn(),
     onEditOnboardingProfile: jest.fn(),
+    onToggleAiSuggestion: jest.fn(),
     ...overrideProps,
   };
 
@@ -91,5 +93,20 @@ describe('SettingsView', () => {
     fireEvent.press(screen.getByText('Edit Onboarding Profile'));
 
     expect(onEditOnboardingProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the AI suggestion toggle under onboarding profile editing', () => {
+    const onToggleAiSuggestion = jest.fn();
+    renderSettingsView({ aiSuggestionEnabled: true, onToggleAiSuggestion });
+
+    expect(screen.getByText('AI Suggestion')).toBeOnTheScreen();
+    expect(screen.getByText('Get Suggestion')).toBeOnTheScreen();
+    expect(screen.getByTestId('ai-suggestion-switch').props.accessibilityState).toMatchObject({
+      checked: true,
+    });
+
+    fireEvent.press(screen.getByTestId('ai-suggestion-switch'));
+
+    expect(onToggleAiSuggestion).toHaveBeenCalledWith(false);
   });
 });
