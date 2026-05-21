@@ -19,6 +19,7 @@ import { SettingsView } from '../views/SettingsView';
 import { WeeklyInsightView } from '../views/WeeklyInsightView';
 import { OnboardingPreview } from './OnboardingPreview';
 import { buildWeeklyInsightSummary } from '../utils/weeklyInsight';
+import type { WeeklyInsightSummary } from '../types/insight';
 import {
   buildMockTask,
   makeActiveDayTasks,
@@ -44,7 +45,7 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
     return <HomePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
-  if (scenario.id.startsWith('onboarding')) {
+  if (scenario.id === 'onboarding') {
     return <OnboardingPreview onExit={() => navigation.goBack()} />;
   }
 
@@ -267,10 +268,56 @@ function AiSchedulePreview({ scenarioId, onBack }: { scenarioId: string; onBack:
   );
 }
 
+const weeklyInsightDataPreviewSummary: WeeklyInsightSummary = {
+  dateRange: 'Apr 21 - Apr 28',
+  headline: 'You are most productive in the morning',
+  basedOn: 'Based on your last 7 days',
+  completionPercent: 76,
+  skippedPercent: 24,
+  peakHourLabel: '10 AM',
+  timeChart: [
+    { label: '8', value: 1 },
+    { label: '10', value: 4 },
+    { label: '12', value: 3 },
+    { label: '2', value: 2 },
+    { label: '4', value: 1 },
+    { label: '6', value: 0 },
+  ],
+  patterns: [
+    { label: 'After 4 PM', text: 'Completion rate drops sharply.' },
+    { label: 'Long tasks', text: '90-min blocks often left unfinished.' },
+    { label: '9-11 AM', text: 'Highest output quality of the day.' },
+  ],
+  suggestions: [
+    {
+      text: 'Reserve deep work for the morning, before other meetings.',
+      action: 'Apply to tomorrow',
+    },
+    {
+      text: 'Split tasks over 90 minutes into two separate blocks.',
+      action: 'Use this plan',
+    },
+    {
+      text: 'Move lower-priority tasks to the afternoon.',
+      action: 'Try this week',
+    },
+  ],
+  reflection: 'Your schedule is improving compared to last week.',
+};
+
 function WeeklyInsightPreview({ scenarioId, onBack }: { scenarioId: string; onBack: () => void }) {
   const tasks = scenarioId === 'weekly-empty' ? [] : makeCompletedHeavyTasks();
+  const summary =
+    scenarioId === 'weekly-data'
+      ? weeklyInsightDataPreviewSummary
+      : buildWeeklyInsightSummary(tasks);
+
   return (
-    <WeeklyInsightView summary={buildWeeklyInsightSummary(tasks)} onOptimizeTomorrow={onBack} />
+    <WeeklyInsightView
+      summary={summary}
+      aiInsightsEnabled={scenarioId !== 'weekly-empty'}
+      onOptimizeTomorrow={onBack}
+    />
   );
 }
 
