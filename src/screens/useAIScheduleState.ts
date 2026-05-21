@@ -227,7 +227,9 @@ export function useAIScheduleState({ isPreview, scenarioId, onComplete }: UseAIS
         writeTasks: setPreviewTasks,
         updateTitle: (taskId: string, title: string) => updatePreviewTask(taskId, { title }),
         updateDuration: (taskId: string, duration: number) =>
-          setPreviewTasks(applyPreviewDuration(storePreviewTasks, taskId, duration)),
+          setPreviewTasks(
+            applyPreviewDuration(useTaskStore.getState().previewTasks, taskId, duration),
+          ),
         clear: clearPreviewTasks,
         confirm: async () => {
           await confirmPreviewTasks();
@@ -275,9 +277,10 @@ export function useAIScheduleState({ isPreview, scenarioId, onComplete }: UseAIS
     setLocalError(null);
     try {
       if (isPreview) {
+        const mockTasks = makeGeneratedPreviewTasks();
         const seededTasks = taskTitles.map((title, index) => ({
           title,
-          durationMinutes: makeGeneratedPreviewTasks()[index]?.durationMinutes ?? 45,
+          durationMinutes: mockTasks[index]?.durationMinutes ?? 45,
         }));
         previewStore.writeTasks(makeSequentialPreview(seededTasks, parsedStartTime));
       } else {

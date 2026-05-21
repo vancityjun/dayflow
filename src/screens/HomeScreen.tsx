@@ -44,7 +44,9 @@ export function HomeScreen(props: Props) {
           />
         ) : (
           <MyPageScreen
-            onEditProfile={isRoute ? () => props.navigation.navigate('Onboarding') : undefined}
+            onEditProfile={
+              isRoute ? () => props.navigation.navigate('Onboarding', { mode: 'edit' }) : undefined
+            }
             onOpenSettings={isRoute ? () => props.navigation.navigate('Settings') : props.onBack}
             onOpenPreviewCatalog={
               isRoute && __DEV__ ? () => props.navigation.navigate('PreviewCatalog') : undefined

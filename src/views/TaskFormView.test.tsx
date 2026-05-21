@@ -107,4 +107,30 @@ describe('TaskFormView', () => {
     fireEvent.press(screen.getByText('x'));
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
+
+  it('preserves cross-midnight tasks when saving an edited task', () => {
+    const onSave = jest.fn<(_values: TaskFormSubmit) => void>();
+
+    renderTaskFormView({
+      mode: 'edit',
+      initialTask: {
+        title: 'Late study',
+        startTime: '2026-05-20T23:30:00-07:00',
+        endTime: '2026-05-21T00:15:00-07:00',
+        status: 'scheduled',
+      },
+      onSave,
+    });
+
+    fireEvent.press(screen.getByText('Confirm schedule'));
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        start: '23:30',
+        end: '00:15',
+        startTime: '2026-05-21T06:30:00.000Z',
+        endTime: '2026-05-21T07:15:00.000Z',
+      }),
+    );
+  });
 });

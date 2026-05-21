@@ -61,7 +61,7 @@ export function TaskFormScreen(props: Props) {
     } else {
       await addTask({ title, startTime, endTime });
     }
-    onComplete();
+    if (!useTaskStore.getState().error) onComplete();
   };
 
   const confirmDelete = () => {
@@ -77,7 +77,7 @@ export function TaskFormScreen(props: Props) {
         style: 'destructive',
         onPress: async () => {
           await deleteTask(editingId);
-          onComplete();
+          if (!useTaskStore.getState().error) onComplete();
         },
       },
     ]);

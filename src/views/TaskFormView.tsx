@@ -69,7 +69,8 @@ export function TaskFormView({
   );
   const [status, setStatus] = useState<TaskStatus>(initialStatus ?? 'scheduled');
   const titleInputRef = useRef<RNTextInput>(null);
-  const parseBaseDate = startTime ? new Date(startTime) : defaults.start;
+  const startParseBaseDate = startTime ? new Date(startTime) : defaults.start;
+  const endParseBaseDate = endTime ? new Date(endTime) : defaults.end;
 
   useEffect(() => {
     const nextDefaults = getDefaultTimes();
@@ -79,8 +80,8 @@ export function TaskFormView({
     setStatus(initialStatus ?? 'scheduled');
   }, [initialTitle, startTime, endTime, initialStatus]);
 
-  const parsedStart = parseTimeInput(start, parseBaseDate);
-  const parsedEnd = parseTimeInput(end, parseBaseDate);
+  const parsedStart = parseTimeInput(start, startParseBaseDate);
+  const parsedEnd = parseTimeInput(end, endParseBaseDate);
   const duration =
     parsedStart && parsedEnd
       ? Math.round((new Date(parsedEnd).getTime() - new Date(parsedStart).getTime()) / 60000)
