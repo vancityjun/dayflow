@@ -23,6 +23,7 @@ describe('onboardingProfile service', () => {
 
   it('saves and reads the onboarding profile', async () => {
     const profile = {
+      name: 'Chris',
       wake: '7:00 AM',
       work: '7:00 AM',
     };
@@ -85,8 +86,9 @@ describe('onboardingProfile service', () => {
   it('formats profile answers for the AI prompt', () => {
     expect(
       formatOnboardingProfileForPrompt({
+        name: 'Chris',
         wake: '7:00 AM',
-        work: '7:00 AM',
+        work: '9:00 AM',
         'commitment-presence': 'Yes',
         'commitment-time': { option: 'Custom', startTime: '1:00 PM', endTime: '3:00 PM' },
         focus: 'Morning',
@@ -95,8 +97,9 @@ describe('onboardingProfile service', () => {
       }),
     ).toBe(
       [
+        '- Name: Chris',
         '- Wake-up time: 7:00 AM',
-        '- Work start time: 7:00 AM',
+        '- Work start time: 9:00 AM',
         '- Has fixed commitments: Yes',
         '- Fixed commitments: Custom, 1:00 PM - 3:00 PM',
         '- Focus best: Morning',

@@ -12,7 +12,6 @@ export function SettingsScreen({ navigation }: Props) {
   const [savedKey, setSavedKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
-  const [aiSuggestionEnabled, setAiSuggestionEnabled] = useState(true);
 
   useEffect(() => {
     getOpenAIApiKey()
@@ -70,14 +69,12 @@ export function SettingsScreen({ navigation }: Props) {
       message={message}
       validating={validating}
       showPreviewCatalog={__DEV__}
-      aiSuggestionEnabled={aiSuggestionEnabled}
       onDismissMessage={() => setMessage(null)}
       onChangeApiKey={setApiKey}
       onCancel={() => navigation.goBack()}
       onSave={save}
       onRemove={remove}
       onEditOnboardingProfile={() => navigation.navigate('Onboarding', { mode: 'edit' })}
-      onToggleAiSuggestion={setAiSuggestionEnabled}
       onOpenPreviewCatalog={__DEV__ ? () => navigation.navigate('PreviewCatalog') : undefined}
     />
   );

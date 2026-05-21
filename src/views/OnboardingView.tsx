@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CompletionState, PillActionButton } from '../components/LightScreenPrimitives';
 
@@ -14,7 +14,7 @@ export type OnboardingAnswer = string | OnboardingCommitmentAnswer;
 export type OnboardingStep = {
   id: string;
   question: string;
-  kind: 'time' | 'options' | 'commitments';
+  kind: 'text' | 'time' | 'options' | 'commitments';
   helperLabel?: string;
   options?: readonly string[];
 };
@@ -24,6 +24,7 @@ type Props = {
   stepIndex: number;
   selectedValue: OnboardingAnswer | undefined;
   completed: boolean;
+  saving?: boolean;
   errorMessage?: string;
   completionActionLabel?: string;
   onSelect: (value: OnboardingAnswer) => void;
@@ -33,6 +34,10 @@ type Props = {
 
 const wheelItemHeight = 34;
 const wheelHeight = 182;
+const hourWheelWidth = 104;
+const minuteWheelWidth = 96;
+const meridiemWheelWidth = 108;
+const timeWheelPickerWidth = hourWheelWidth + minuteWheelWidth + meridiemWheelWidth;
 const hourOptions = Array.from({ length: 12 }, (_, index) => String(index + 1));
 const minuteOptions = Array.from({ length: 12 }, (_, index) => String(index * 5).padStart(2, '0'));
 const meridiemOptions = ['AM', 'PM'];
@@ -86,63 +91,134 @@ function WheelColumn({
   testID?: string;
 }) {
   const scrollRef = useRef<ScrollView>(null);
+  const momentumScrollingRef = useRef(false);
+  const fallbackSelectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedIndex = Math.max(0, options.indexOf(selectedValue));
-  const commitScrollSelection = (offsetY: number) => {
+  const scrollY = useRef(new Animated.Value(selectedIndex * wheelItemHeight)).current;
+  const applyScrollSelection = (offsetY: number | undefined) => {
+    if (typeof offsetY !== 'number' || !Number.isFinite(offsetY)) return;
+
     const nextIndex = Math.round(offsetY / wheelItemHeight);
     const optionIndex = Math.max(0, Math.min(options.length - 1, nextIndex));
-    onChange(options[optionIndex]);
+    const nextValue = options[optionIndex];
+    if (nextValue) onChange(nextValue);
+  };
+  const clearFallbackSelection = () => {
+    if (!fallbackSelectionTimeoutRef.current) return;
+    clearTimeout(fallbackSelectionTimeoutRef.current);
+    fallbackSelectionTimeoutRef.current = null;
+  };
+  const scheduleFallbackSelection = (offsetY: number | undefined) => {
+    clearFallbackSelection();
+    fallbackSelectionTimeoutRef.current = setTimeout(() => {
+      fallbackSelectionTimeoutRef.current = null;
+      applyScrollSelection(offsetY);
+    }, 120);
   };
 
   useEffect(() => {
+    scrollY.setValue(selectedIndex * wheelItemHeight);
     scrollRef.current?.scrollTo({
       y: selectedIndex * wheelItemHeight,
       animated: false,
     });
-  }, [selectedIndex]);
+  }, [scrollY, selectedIndex]);
+
+  useEffect(
+    () => () => {
+      if (fallbackSelectionTimeoutRef.current) {
+        clearTimeout(fallbackSelectionTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   return (
     <View style={{ width, height: wheelHeight }}>
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollRef}
         testID={testID}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         snapToInterval={wheelItemHeight}
-        decelerationRate="fast"
+        decelerationRate="normal"
         bounces={false}
         overScrollMode="never"
-        contentContainerStyle={{ paddingVertical: (wheelHeight - wheelItemHeight) / 2 }}
+        scrollEventThrottle={16}
+        contentContainerStyle={{
+          paddingVertical: (wheelHeight - wheelItemHeight) / 2,
+          paddingHorizontal: 10,
+        }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: true,
+        })}
+        onMomentumScrollBegin={() => {
+          clearFallbackSelection();
+          momentumScrollingRef.current = true;
+        }}
         onScrollEndDrag={(event) => {
-          commitScrollSelection(event.nativeEvent.contentOffset.y);
+          const velocityY = event.nativeEvent.velocity?.y;
+          if (
+            momentumScrollingRef.current ||
+            (typeof velocityY === 'number' && Math.abs(velocityY) > 0.01)
+          ) {
+            scheduleFallbackSelection(event.nativeEvent.contentOffset?.y);
+            return;
+          }
+          applyScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
         onMomentumScrollEnd={(event) => {
-          commitScrollSelection(event.nativeEvent.contentOffset.y);
+          clearFallbackSelection();
+          momentumScrollingRef.current = false;
+          applyScrollSelection(event.nativeEvent.contentOffset?.y);
         }}
       >
         {options.map((item, index) => {
-          const distance = Math.abs(index - selectedIndex);
-          const selected = distance === 0;
-          const fontSize = selected ? 24 : distance === 1 ? 22 : distance === 2 ? 18 : 13;
-          const opacity = selected ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.32 : 0.18;
+          const itemOffset = index * wheelItemHeight;
+          const inputRange = [
+            itemOffset - wheelItemHeight * 3,
+            itemOffset - wheelItemHeight * 2,
+            itemOffset - wheelItemHeight,
+            itemOffset,
+            itemOffset + wheelItemHeight,
+            itemOffset + wheelItemHeight * 2,
+            itemOffset + wheelItemHeight * 3,
+          ];
+          const animatedOpacity = scrollY.interpolate({
+            inputRange,
+            outputRange: [0.18, 0.32, 0.55, 1, 0.55, 0.32, 0.18],
+            extrapolate: 'clamp',
+          });
+          const animatedScale = scrollY.interpolate({
+            inputRange,
+            outputRange: [0.54, 0.75, 0.92, 1, 0.92, 0.75, 0.54],
+            extrapolate: 'clamp',
+          });
           const justifyClassName =
             align === 'right' ? 'items-end' : align === 'left' ? 'items-start' : 'items-center';
           return (
             <Pressable
               key={`${item}-${index}`}
               onPress={() => onChange(item)}
-              style={{ height: wheelItemHeight, paddingHorizontal: 8 }}
+              style={{ height: wheelItemHeight, width: '100%', paddingHorizontal: 12 }}
               className={`${justifyClassName} justify-center`}
+              hitSlop={{ top: 6, bottom: 6, left: 16, right: 16 }}
               testID={`onboarding-wheel-option-${item}`}
             >
-              <Text
-                className={`${selected ? 'font-medium text-ink' : 'font-normal text-ink'}`}
-                style={{ fontSize, opacity }}
+              <Animated.Text
+                className="font-medium text-ink"
+                style={{
+                  fontSize: 24,
+                  opacity: animatedOpacity,
+                  transform: [{ scale: animatedScale }],
+                }}
               >
                 {item}
-              </Text>
+              </Animated.Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -150,16 +226,37 @@ function WheelColumn({
 function TimeWheelPicker({
   value,
   onChange,
+  onInteractionStart,
+  onInteractionEnd,
 }: {
   value: string | undefined;
   onChange: (value: string) => void;
+  onInteractionStart?: () => void;
+  onInteractionEnd?: () => void;
 }) {
   const parsed = parseTimeValue(value);
+  const pendingTimeRef = useRef(parsed);
+
+  useEffect(() => {
+    pendingTimeRef.current = parseTimeValue(value);
+  }, [value]);
+
+  const updateTimePart = (part: 'hour' | 'minute' | 'meridiem', nextValue: string) => {
+    const nextTime = {
+      ...pendingTimeRef.current,
+      [part]: nextValue,
+    };
+    pendingTimeRef.current = nextTime;
+    onChange(composeTimeValue(nextTime.hour, nextTime.minute, nextTime.meridiem));
+  };
 
   return (
     <View
       className="relative items-center"
-      style={{ height: wheelHeight, width: '100%', maxWidth: 326 }}
+      style={{ height: wheelHeight, width: '100%', maxWidth: timeWheelPickerWidth }}
+      onTouchStart={onInteractionStart}
+      onTouchEnd={onInteractionEnd}
+      onTouchCancel={onInteractionEnd}
       testID="onboarding-time-picker"
     >
       <View
@@ -176,31 +273,25 @@ function TimeWheelPicker({
         <WheelColumn
           options={hourOptions}
           selectedValue={parsed.hour}
-          width={84}
+          width={hourWheelWidth}
           align="right"
           testID="onboarding-hour-wheel"
-          onChange={(nextHour) =>
-            onChange(composeTimeValue(nextHour, parsed.minute, parsed.meridiem))
-          }
+          onChange={(nextHour) => updateTimePart('hour', nextHour)}
         />
         <WheelColumn
           options={minuteOptions}
           selectedValue={parsed.minute}
-          width={86}
+          width={minuteWheelWidth}
           testID="onboarding-minute-wheel"
-          onChange={(nextMinute) =>
-            onChange(composeTimeValue(parsed.hour, nextMinute, parsed.meridiem))
-          }
+          onChange={(nextMinute) => updateTimePart('minute', nextMinute)}
         />
         <WheelColumn
           options={meridiemOptions}
           selectedValue={parsed.meridiem}
-          width={92}
+          width={meridiemWheelWidth}
           align="left"
           testID="onboarding-meridiem-wheel"
-          onChange={(nextMeridiem) =>
-            onChange(composeTimeValue(parsed.hour, parsed.minute, nextMeridiem))
-          }
+          onChange={(nextMeridiem) => updateTimePart('meridiem', nextMeridiem)}
         />
       </View>
     </View>
@@ -217,8 +308,8 @@ function renderOptionCard({
   onPress: () => void;
 }) {
   const selectedCardClass = 'bg-ink';
-  const unselectedCardClass = 'border border-warm3 bg-paper';
-  const optionTextClass = selected ? 'font-semibold text-white' : 'font-medium text-ink';
+  const unselectedCardClass = 'border border-warm3 bg-white';
+  const optionTextClass = selected ? 'font-semibold text-white' : 'font-semibold text-ink';
 
   return (
     <Pressable
@@ -228,7 +319,7 @@ function renderOptionCard({
         selected ? selectedCardClass : unselectedCardClass
       }`}
     >
-      <Text className={`text-base ${optionTextClass}`}>{option}</Text>
+      <Text className={`text-[17px] ${optionTextClass}`}>{option}</Text>
       {selected ? (
         <View className="h-6 w-6 items-center justify-center rounded-full bg-accent">
           <View className="h-[13px] w-[15px]">
@@ -252,12 +343,35 @@ export function OnboardingView({
   stepIndex,
   selectedValue,
   completed,
+  saving = false,
   errorMessage,
   completionActionLabel = 'Get Started',
   onSelect,
   onBack,
   onNext,
 }: Props) {
+  const selectedValueRef = useRef(selectedValue);
+  const parentScrollLockCountRef = useRef(0);
+  const [screenScrollEnabled, setScreenScrollEnabled] = useState(true);
+
+  useEffect(() => {
+    selectedValueRef.current = selectedValue;
+  }, [selectedValue]);
+
+  const lockScreenScroll = () => {
+    parentScrollLockCountRef.current += 1;
+    if (parentScrollLockCountRef.current === 1) {
+      setScreenScrollEnabled(false);
+    }
+  };
+
+  const unlockScreenScroll = () => {
+    parentScrollLockCountRef.current = Math.max(0, parentScrollLockCountRef.current - 1);
+    if (parentScrollLockCountRef.current === 0) {
+      setScreenScrollEnabled(true);
+    }
+  };
+
   if (completed) {
     return (
       <CompletionState
@@ -271,7 +385,6 @@ export function OnboardingView({
 
   const step = steps[stepIndex];
   const progressLabel = `${stepIndex + 1}/${steps.length}`;
-  const useMutedNextButton = stepIndex > 0;
   const canNext =
     step.kind === 'commitments'
       ? (() => {
@@ -283,18 +396,40 @@ export function OnboardingView({
             selectedValue.endTime?.trim(),
           );
         })()
-      : Boolean(selectedValue);
+      : step.kind === 'text'
+        ? typeof selectedValue === 'string' && Boolean(selectedValue.trim())
+        : Boolean(selectedValue);
+  const selectValue = (value: OnboardingAnswer) => {
+    selectedValueRef.current = value;
+    onSelect(value);
+  };
+  const updateCustomCommitmentTime = (field: 'startTime' | 'endTime', time: string) => {
+    const currentValue = selectedValueRef.current;
+    const currentCommitment =
+      isCommitmentAnswer(currentValue) && currentValue.option === customCommitmentOption
+        ? currentValue
+        : { option: customCommitmentOption, startTime: '7:00 AM', endTime: '7:00 AM' };
+    const nextValue = {
+      ...currentCommitment,
+      [field]: time,
+    };
+    selectValue(nextValue);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']} testID="onboarding-root">
-      <ScrollView contentContainerClassName="flex-grow pb-28 pt-20">
+      <ScrollView
+        scrollEnabled={screenScrollEnabled}
+        nestedScrollEnabled
+        contentContainerClassName="flex-grow pb-28 pt-20"
+      >
         <View className="flex-row items-center gap-4 px-6">
           <Pressable
             onPress={onBack}
             disabled={stepIndex === 0}
             testID="onboarding-back-button"
             className={`h-[34px] w-[34px] items-center justify-center rounded-full ${
-              stepIndex === 0 ? 'opacity-0' : 'bg-warm4'
+              stepIndex === 0 ? 'opacity-0' : 'bg-warm3'
             }`}
           >
             <View className="h-[14px] w-[10px] justify-center">
@@ -317,7 +452,7 @@ export function OnboardingView({
         </View>
 
         <View className="px-6 pt-11">
-          <Text className="text-[11px] font-medium uppercase tracking-[0.4px] text-warm">
+          <Text className="text-[11px] font-medium uppercase text-warm">
             Question {stepIndex + 1}
           </Text>
           <Text className="mt-3 max-w-[320px] text-[25px] font-bold leading-[31px] text-ink">
@@ -325,14 +460,31 @@ export function OnboardingView({
           </Text>
         </View>
 
-        {step.kind === 'time' ? (
+        {step.kind === 'text' ? (
+          <View className="px-6 pt-20">
+            <TextInput
+              value={typeof selectedValue === 'string' ? selectedValue : ''}
+              onChangeText={selectValue}
+              placeholder="Your name"
+              placeholderTextColor="#A39E91"
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              testID="onboarding-name-input"
+              className="py-1 text-[32px] font-semibold leading-[38px] tracking-[0.51px] text-[#A39E91]"
+            />
+            <View className="mt-4 h-[2px] bg-warm3" />
+          </View>
+        ) : step.kind === 'time' ? (
           <View className="flex-1 items-center justify-center px-6 pb-14 pt-10">
             <TimeWheelPicker
               value={typeof selectedValue === 'string' ? selectedValue : undefined}
-              onChange={onSelect}
+              onChange={selectValue}
+              onInteractionStart={lockScreenScroll}
+              onInteractionEnd={unlockScreenScroll}
             />
             <Text
-              className="mt-6 text-center text-[11px] text-warm"
+              className="mt-6 text-center text-[13px] text-warm"
               testID="onboarding-time-helper"
             >
               {step.helperLabel}:{' '}
@@ -350,7 +502,7 @@ export function OnboardingView({
                 option,
                 selected,
                 onPress: () =>
-                  onSelect(
+                  selectValue(
                     option === customCommitmentOption
                       ? {
                           option,
@@ -376,12 +528,9 @@ export function OnboardingView({
                 </Text>
                 <TimeWheelPicker
                   value={selectedValue.startTime}
-                  onChange={(startTime) =>
-                    onSelect({
-                      ...selectedValue,
-                      startTime,
-                    })
-                  }
+                  onChange={(startTime) => updateCustomCommitmentTime('startTime', startTime)}
+                  onInteractionStart={lockScreenScroll}
+                  onInteractionEnd={unlockScreenScroll}
                 />
                 <View className="py-5">
                   <View className="h-px bg-warm3" />
@@ -391,12 +540,9 @@ export function OnboardingView({
                 </Text>
                 <TimeWheelPicker
                   value={selectedValue.endTime}
-                  onChange={(endTime) =>
-                    onSelect({
-                      ...selectedValue,
-                      endTime,
-                    })
-                  }
+                  onChange={(endTime) => updateCustomCommitmentTime('endTime', endTime)}
+                  onInteractionStart={lockScreenScroll}
+                  onInteractionEnd={unlockScreenScroll}
                 />
               </View>
             ) : null}
@@ -408,7 +554,7 @@ export function OnboardingView({
               return renderOptionCard({
                 option,
                 selected,
-                onPress: () => onSelect(option),
+                onPress: () => selectValue(option),
               });
             })}
           </View>
@@ -421,9 +567,11 @@ export function OnboardingView({
         ) : null}
         <PillActionButton
           label="Next"
-          disabled={!canNext}
-          buttonColor={useMutedNextButton || !canNext ? '#E8E3D7' : undefined}
-          textColor={useMutedNextButton || !canNext ? '#8A857A' : undefined}
+          disabled={!canNext || saving}
+          loading={saving}
+          buttonColor={!canNext ? '#E8E3D7' : '#01B224'}
+          textColor={!canNext ? '#8A857A' : undefined}
+          labelStyle={{ fontSize: 15, fontWeight: '700', lineHeight: 15, letterSpacing: -0.15 }}
           onPress={onNext}
         />
       </View>
