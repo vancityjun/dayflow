@@ -44,7 +44,7 @@ export function PreviewScenarioScreen({ navigation, route }: Props) {
     return <HomePreview scenarioId={scenario.id} onBack={() => navigation.goBack()} />;
   }
 
-  if (scenario.id === 'onboarding') {
+  if (scenario.id.startsWith('onboarding')) {
     return <OnboardingPreview onExit={() => navigation.goBack()} />;
   }
 
@@ -305,6 +305,7 @@ function SettingsPreview({
         setSaved(false);
         setMessage('API key removed.');
       }}
+      onEditOnboardingProfile={onBack}
       onOpenPreviewCatalog={onOpenPreviewCatalog}
     />
   );

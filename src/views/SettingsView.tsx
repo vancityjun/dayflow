@@ -16,6 +16,7 @@ type Props = {
   onCancel: () => void;
   onSave: () => void;
   onRemove: () => void;
+  onEditOnboardingProfile: () => void;
   onOpenPreviewCatalog?: () => void;
 };
 
@@ -31,6 +32,7 @@ export function SettingsView({
   onCancel,
   onSave,
   onRemove,
+  onEditOnboardingProfile,
   onOpenPreviewCatalog,
 }: Props) {
   const [hideApiKey, setHideApiKey] = useState(false);
@@ -110,6 +112,20 @@ export function SettingsView({
               Remove API Key
             </Button>
           ) : null}
+
+          <View className="mt-8 border-t border-warm3 pt-6">
+            <Text className="text-xs font-semibold uppercase tracking-[2px] text-warm">
+              Personalization
+            </Text>
+            <Button
+              mode="outlined"
+              onPress={onEditOnboardingProfile}
+              textColor={colors.ink}
+              style={{ marginTop: 12, borderRadius: 999 }}
+            >
+              Edit Onboarding Profile
+            </Button>
+          </View>
 
           {showPreviewCatalog && onOpenPreviewCatalog ? (
             <View className="mt-8 border-t border-warm3 pt-6">

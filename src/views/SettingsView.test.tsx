@@ -19,6 +19,7 @@ function renderSettingsView(
     onCancel: jest.fn(),
     onSave: jest.fn(),
     onRemove: jest.fn(),
+    onEditOnboardingProfile: jest.fn(),
     ...overrideProps,
   };
 
@@ -80,5 +81,15 @@ describe('SettingsView', () => {
 
     expect(screen.getByText('AI generation is enabled.')).toBeOnTheScreen();
     expect(screen.getByText('Your API key was verified and is stored locally.')).toBeOnTheScreen();
+  });
+
+  it('opens onboarding profile editing from settings', () => {
+    const onEditOnboardingProfile = jest.fn();
+    renderSettingsView({ onEditOnboardingProfile });
+
+    expect(screen.getByText('Personalization')).toBeOnTheScreen();
+    fireEvent.press(screen.getByText('Edit Onboarding Profile'));
+
+    expect(onEditOnboardingProfile).toHaveBeenCalledTimes(1);
   });
 });

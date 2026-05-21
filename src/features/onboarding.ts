@@ -2,6 +2,11 @@ import type { OnboardingAnswer, OnboardingStep } from '../views/OnboardingView';
 
 export const onboardingSteps: OnboardingStep[] = [
   {
+    id: 'name',
+    question: "What's your name?",
+    kind: 'text',
+  },
+  {
     id: 'wake',
     question: 'What time do you usually wake up?',
     kind: 'time',
@@ -18,7 +23,6 @@ export const onboardingSteps: OnboardingStep[] = [
     question: 'Do you have fixed commitments like school or work?',
     kind: 'options',
     options: ['Yes', 'No'],
-    selectionStyle: 'centered',
   },
   {
     id: 'commitment-time',
@@ -53,15 +57,17 @@ export const onboardingSteps: OnboardingStep[] = [
 ];
 
 export const defaultOnboardingAnswers: Record<string, OnboardingAnswer> = {
+  name: '',
   wake: '7:00 AM',
   work: '9:00 AM',
 };
 
 export function getVisibleOnboardingSteps(answers: Record<string, OnboardingAnswer>) {
   const hasFixedCommitments = answers['commitment-presence'] === 'Yes';
+  const hasAnsweredNoFixedCommitments = answers['commitment-presence'] === 'No';
 
   return onboardingSteps.filter((step) => {
-    if (step.id === 'commitment-time') return hasFixedCommitments;
+    if (step.id === 'commitment-time') return hasFixedCommitments || !hasAnsweredNoFixedCommitments;
     return true;
   });
 }

@@ -48,12 +48,15 @@ function renderSettingsScreen() {
     navigate: jest.fn(),
   };
 
-  return render(
-    <SettingsScreen
-      navigation={navigation as never}
-      route={{ key: 'settings-key', name: 'Settings' } as never}
-    />,
-  );
+  return {
+    navigation,
+    ...render(
+      <SettingsScreen
+        navigation={navigation as never}
+        route={{ key: 'settings-key', name: 'Settings' } as never}
+      />,
+    ),
+  };
 }
 
 describe('SettingsScreen', () => {
@@ -163,5 +166,18 @@ describe('SettingsScreen', () => {
     expect(deleteOpenAIApiKeyMock).toHaveBeenCalledTimes(1);
     expect(lastSettingsViewProps?.message).toBe('API key removed.');
     expect(lastSettingsViewProps?.saved).toBe(false);
+  });
+
+  it('opens onboarding in edit mode from settings', async () => {
+    getOpenAIApiKeyMock.mockResolvedValueOnce(null);
+    const { navigation } = renderSettingsScreen();
+
+    await waitFor(() => expect(lastSettingsViewProps).not.toBeNull());
+
+    act(() => {
+      lastSettingsViewProps?.onEditOnboardingProfile();
+    });
+
+    expect(navigation.navigate).toHaveBeenCalledWith('Onboarding', { mode: 'edit' });
   });
 });

@@ -3,6 +3,10 @@ import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { getOpenAIApiKey } from '../services/apiKey';
+import {
+  formatOnboardingProfileForPrompt,
+  getOnboardingProfile,
+} from '../services/onboardingProfile';
 import { generateScheduleFromText } from '../services/openai';
 import { useTaskStore } from '../store/taskStore';
 import { makeSequentialPreview } from '../utils/scheduling';
@@ -87,7 +91,12 @@ export function AIScheduleScreen({ navigation }: Props) {
     setGenerating(true);
     setLocalError(null);
     try {
-      const generated = await generateScheduleFromText(latestApiKey, taskTitles);
+      const onboardingProfile = await getOnboardingProfile();
+      const generated = await generateScheduleFromText(
+        latestApiKey,
+        taskTitles,
+        formatOnboardingProfileForPrompt(onboardingProfile),
+      );
       setPreviewTasks(makeSequentialPreview(generated, parsedStartTime));
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : 'Failed to generate a schedule.');
