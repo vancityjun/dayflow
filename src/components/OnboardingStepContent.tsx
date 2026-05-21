@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import {
   type OnboardingAnswer,
@@ -18,7 +19,9 @@ export function canAdvanceOnboardingStep(
   step: OnboardingStep,
   selectedValue: OnboardingAnswer | undefined,
 ) {
-  if (step.kind === 'text') return typeof selectedValue === 'string' && Boolean(selectedValue.trim());
+  if (step.kind === 'text') {
+    return typeof selectedValue === 'string' && Boolean(selectedValue.trim());
+  }
   if (step.kind !== 'commitments') return Boolean(selectedValue);
   if (!isCommitmentAnswer(selectedValue)) return false;
   if (selectedValue.option !== customCommitmentOption) return Boolean(selectedValue.option);
@@ -90,12 +93,32 @@ export function OnboardingStepContent({
   onInteractionStart,
   onInteractionEnd,
 }: Props) {
+  const selectedValueRef = useRef(selectedValue);
+
+  useEffect(() => {
+    selectedValueRef.current = selectedValue;
+  }, [selectedValue]);
+
+  const selectValue = (value: OnboardingAnswer) => {
+    selectedValueRef.current = value;
+    onChange(value);
+  };
+
+  const updateCustomCommitmentTime = (field: 'startTime' | 'endTime', time: string) => {
+    const currentValue = selectedValueRef.current;
+    const currentCommitment =
+      isCommitmentAnswer(currentValue) && currentValue.option === customCommitmentOption
+        ? currentValue
+        : { option: customCommitmentOption, startTime: '7:00 AM', endTime: '9:00 AM' };
+    selectValue({ ...currentCommitment, [field]: time });
+  };
+
   if (step.kind === 'text') {
     return (
       <View className="px-6 pt-20">
         <TextInput
           value={typeof selectedValue === 'string' ? selectedValue : ''}
-          onChangeText={onChange}
+          onChangeText={selectValue}
           placeholder="Your name"
           placeholderTextColor="#A39E91"
           autoCapitalize="words"
@@ -114,7 +137,7 @@ export function OnboardingStepContent({
       <View className="flex-1 items-center justify-center px-6 py-12">
         <TimeWheelPicker
           value={typeof selectedValue === 'string' ? selectedValue : undefined}
-          onChange={onChange}
+          onChange={selectValue}
           onInteractionStart={onInteractionStart}
           onInteractionEnd={onInteractionEnd}
           width={324}
@@ -144,7 +167,7 @@ export function OnboardingStepContent({
               option={option}
               selected={selected}
               onPress={() =>
-                onChange(
+                selectValue(
                   option === customCommitmentOption
                     ? {
                         option,
@@ -171,7 +194,7 @@ export function OnboardingStepContent({
             </Text>
             <TimeWheelPicker
               value={selectedValue.startTime}
-              onChange={(startTime) => onChange({ ...selectedValue, startTime })}
+              onChange={(startTime) => updateCustomCommitmentTime('startTime', startTime)}
               onInteractionStart={onInteractionStart}
               onInteractionEnd={onInteractionEnd}
               width={324}
@@ -184,7 +207,7 @@ export function OnboardingStepContent({
             </Text>
             <TimeWheelPicker
               value={selectedValue.endTime}
-              onChange={(endTime) => onChange({ ...selectedValue, endTime })}
+              onChange={(endTime) => updateCustomCommitmentTime('endTime', endTime)}
               onInteractionStart={onInteractionStart}
               onInteractionEnd={onInteractionEnd}
               width={324}
@@ -203,7 +226,7 @@ export function OnboardingStepContent({
           option={option}
           selected={option === selectedValue}
           centered={step.selectionStyle === 'centered'}
-          onPress={() => onChange(option)}
+          onPress={() => selectValue(option)}
         />
       ))}
     </View>

@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import { AIScheduleScreen } from '../screens/AIScheduleScreen';
-import { getOpenAIApiKey } from '../services/apiKey';
+import { getAiFeaturesEnabled, getOpenAIApiKey } from '../services/apiKey';
+import { getOnboardingProfile } from '../services/onboardingProfile';
 import { generateScheduleFromText } from '../services/openai';
 import { useTaskStore } from '../store/taskStore';
 import { useIsFocused } from '@react-navigation/native';
@@ -13,11 +14,17 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 jest.mock('../services/apiKey', () => ({
+  getAiFeaturesEnabled: jest.fn(),
   getOpenAIApiKey: jest.fn(),
 }));
 
 jest.mock('../services/openai', () => ({
   generateScheduleFromText: jest.fn(),
+}));
+
+jest.mock('../services/onboardingProfile', () => ({
+  formatOnboardingProfileForPrompt: jest.fn(() => null),
+  getOnboardingProfile: jest.fn(),
 }));
 
 jest.mock('../store/taskStore', () => ({
@@ -66,16 +73,22 @@ function renderAIScheduleRouteScreen() {
 
 describe('AIScheduleScreen', () => {
   const getOpenAIApiKeyMock = jest.mocked(getOpenAIApiKey);
+  const getAiFeaturesEnabledMock = jest.mocked(getAiFeaturesEnabled);
+  const getOnboardingProfileMock = jest.mocked(getOnboardingProfile);
   const generateScheduleFromTextMock = jest.mocked(generateScheduleFromText);
   const useTaskStoreMock = jest.mocked(useTaskStore);
   const useIsFocusedMock = jest.mocked(useIsFocused);
 
   beforeEach(() => {
     getOpenAIApiKeyMock.mockReset();
+    getAiFeaturesEnabledMock.mockReset();
+    getOnboardingProfileMock.mockReset();
     generateScheduleFromTextMock.mockReset();
     useTaskStoreMock.mockReset();
     useIsFocusedMock.mockReset();
     useIsFocusedMock.mockImplementation(() => true);
+    getAiFeaturesEnabledMock.mockResolvedValue(true);
+    getOnboardingProfileMock.mockResolvedValue(null);
     useTaskStoreMock.mockReturnValue(createStoreState());
   });
 
@@ -145,7 +158,7 @@ describe('AIScheduleScreen', () => {
     });
 
     await waitFor(() =>
-      expect(generateScheduleFromTextMock).toHaveBeenCalledWith('sk-new', ['Study React']),
+      expect(generateScheduleFromTextMock).toHaveBeenCalledWith('sk-new', ['Study React'], null),
     );
     expect(storeState.setPreviewTasks).toHaveBeenCalledTimes(1);
   });

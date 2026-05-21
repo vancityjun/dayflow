@@ -2,9 +2,10 @@ import { createContext, useContext } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { Button, Snackbar, TextInput } from 'react-native-paper';
 import { ScreenTopBar } from './ScreenTopBar';
+import { TimeWheelPicker } from './TimeWheelPicker';
 import { colors } from '../theme/colors';
 import type { GeneratedTaskPreview } from '../types/task';
-import { durationBetween, formatDisplayTime } from '../utils/time';
+import { durationBetween, formatDisplayTime, fromWheelTime, toWheelTime } from '../utils/time';
 import type { TaskInputRow } from '../screens/useAIScheduleState';
 
 type AIScheduleContextValue = {
@@ -189,14 +190,14 @@ export function AISchedulePlannerSection() {
         <Text className="mt-2 text-2xl font-bold tracking-tight text-ink">
           Choose the start of your day
         </Text>
-        <TextInput
-          mode="outlined"
-          label="Schedule start time"
-          value={startTime}
-          onChangeText={onChangeStartTime}
-          placeholder="09:00"
-          keyboardType="numbers-and-punctuation"
-          style={{ marginTop: 16 }}
+        <Text className="mt-4 text-xs font-semibold uppercase tracking-[2px] text-warm">
+          Schedule start time
+        </Text>
+        <TimeWheelPicker
+          value={toWheelTime(startTime)}
+          onChange={(value) => onChangeStartTime(fromWheelTime(value))}
+          containerClassName="mt-3 self-center"
+          width={262}
         />
       </View>
 
