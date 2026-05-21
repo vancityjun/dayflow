@@ -3,7 +3,8 @@ import { Pressable, ScrollView, Text, TextInput as RNTextInput, View } from 'rea
 import { Button, Snackbar } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
-import type { TaskStatus } from '../types/task';
+import type { Task, TaskStatus } from '../types/task';
+import { formatDisplayTime } from '../utils/time';
 
 type Props = {
   mode: 'create' | 'edit';
@@ -12,6 +13,9 @@ type Props = {
   end: string;
   status: TaskStatus;
   durationLabel: string;
+  dayLabel?: string;
+  previousTask?: Task;
+  nextTask?: Task;
   validation: string | null;
   loading: boolean;
   error: string | null;
@@ -63,6 +67,10 @@ function fromWheelTime(value: string) {
 
 function formatTimeRange(start: string, end: string) {
   return `${toWheelTime(start)} - ${toWheelTime(end)}`;
+}
+
+function formatEditTime(value: string) {
+  return toWheelTime(value).toLowerCase();
 }
 
 function WheelColumn({
@@ -205,6 +213,49 @@ function QuickAddChip({
   );
 }
 
+function EditTimelineRow({
+  label,
+  title,
+  time,
+  active = false,
+}: {
+  label: string;
+  title?: string;
+  time?: string;
+  active?: boolean;
+}) {
+  return (
+    <View className="min-h-[72px] flex-row items-start">
+      <View className="w-[52px] items-center pt-[3px]">
+        <View
+          className={`h-[13px] w-[13px] rounded-full ${
+            active ? 'bg-ink' : 'border-[2px] border-warm bg-paper'
+          }`}
+        />
+      </View>
+      <View className="flex-1">
+        <Text className="text-[10px] font-medium uppercase tracking-[1.8px] text-warm">
+          {label}
+        </Text>
+        <Text
+          className={`mt-0.5 ${
+            active
+              ? 'text-[17px] font-bold tracking-[0.17px] text-ink'
+              : 'text-[13px] font-medium tracking-[0.13px] text-warm'
+          }`}
+        >
+          {title}
+        </Text>
+      </View>
+      {time ? (
+        <Text className={`pt-[22px] text-[12px] ${active ? 'font-bold text-ink' : 'text-warm'}`}>
+          {time}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 export function TaskFormView({
   mode,
   title,
@@ -212,6 +263,9 @@ export function TaskFormView({
   end,
   status,
   durationLabel,
+  dayLabel,
+  previousTask,
+  nextTask,
   validation,
   loading,
   error,
@@ -222,10 +276,168 @@ export function TaskFormView({
   onChangeStatus,
   onCancel,
   onSave,
-  onDelete,
 }: Props) {
   const canSave = !validation && title.trim().length > 0 && !loading;
   const titleInputRef = useRef<RNTextInput>(null);
+  const previousTitle = previousTask?.title ?? 'No previous task';
+  const nextTitle = nextTask?.title ?? 'No next task';
+
+  if (mode === 'edit') {
+    return (
+      <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']}>
+        <ScrollView contentContainerClassName="pb-24 pt-4">
+          <View className="flex-row items-center justify-between px-6">
+            <Button
+              mode="text"
+              compact
+              textColor={colors.ink2}
+              onPress={onCancel}
+              labelStyle={{ fontSize: 15, fontWeight: '500', letterSpacing: 0.075 }}
+            >
+              Cancel
+            </Button>
+            <Text className="text-[11px] font-bold uppercase tracking-[2.42px] text-ink">
+              Edit Task
+            </Text>
+            <Button
+              mode="text"
+              compact
+              disabled={!canSave}
+              textColor={colors.warm2}
+              onPress={onSave}
+              labelStyle={{ fontSize: 15, fontWeight: '700', letterSpacing: 0.075 }}
+            >
+              Save
+            </Button>
+          </View>
+
+          <View className="px-6 pt-8">
+            <Text className="text-[11px] font-semibold uppercase tracking-[1.98px] text-warm">
+              Task
+            </Text>
+            <RNTextInput
+              ref={titleInputRef}
+              value={title}
+              onChangeText={onChangeTitle}
+              placeholder="Task name"
+              placeholderTextColor={colors.warm}
+              className="mt-3 border-b border-warm3 pb-5 text-[27px] font-bold tracking-[-0.6px] text-black"
+            />
+          </View>
+
+          <View className="px-6 pt-7">
+            <Text className="text-[11px] font-semibold uppercase tracking-[1.98px] text-warm">
+              Schedule
+            </Text>
+            <View className="mt-5 min-h-[142px] flex-row">
+              <View className="relative w-[52px] items-center">
+                <View className="absolute top-[4px] h-[13px] w-[13px] rounded-full bg-ink" />
+                <View className="absolute top-[17px] h-[108px] w-[1.5px] bg-warm2" />
+                <View className="absolute top-[125px] h-[13px] w-[13px] rounded-full border-[2px] border-warm bg-paper" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[11px] font-medium uppercase tracking-[1.76px] text-warm">
+                  Start
+                </Text>
+                <Text className="mt-3 border-b-2 border-accent pb-3 text-[24px] font-bold tracking-[-0.5px] text-black">
+                  {formatEditTime(start)}
+                </Text>
+                <Text className="mt-7 text-[11px] font-medium uppercase tracking-[1.76px] text-warm">
+                  End
+                </Text>
+                <Text className="mt-3 text-[24px] font-bold tracking-[-0.5px] text-black">
+                  {formatEditTime(end)}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <View className="px-6 pt-9">
+            <Text className="text-[11px] font-semibold uppercase tracking-[1.98px] text-warm">
+              State
+            </Text>
+            <View className="mt-4 flex-row rounded-full bg-warm3 p-1">
+              {(['scheduled', 'skipped', 'completed'] as const).map((option) => {
+                const selected = status === option;
+                const label =
+                  option === 'scheduled' ? 'Active' : option[0].toUpperCase() + option.slice(1);
+
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => onChangeStatus(option)}
+                    className={`h-[38px] flex-1 items-center justify-center rounded-full ${
+                      selected ? 'bg-paper' : ''
+                    }`}
+                  >
+                    <Text
+                      className={`text-[13px] font-medium tracking-[-0.065px] ${
+                        selected ? 'text-accent' : 'text-ink2'
+                      }`}
+                    >
+                      {label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View className="px-6 pt-8">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[11px] font-semibold uppercase tracking-[1.98px] text-warm">
+                In your day
+              </Text>
+              {dayLabel ? (
+                <Text className="text-[11px] font-semibold tracking-[0.44px] text-warm2">
+                  {dayLabel}
+                </Text>
+              ) : null}
+            </View>
+            <View className="relative mt-6 min-h-[216px]">
+              <View className="absolute left-[25px] top-[9px] h-[152px] w-[1.5px] bg-warm2" />
+              <EditTimelineRow
+                label="Previous"
+                title={previousTitle}
+                time={previousTask ? dayLabel : ''}
+              />
+              <EditTimelineRow
+                label="Current"
+                title={title}
+                time={`${formatEditTime(start)} - ${formatEditTime(end)}`}
+                active
+              />
+              <EditTimelineRow
+                label="Next"
+                title={nextTitle}
+                time={nextTask ? `at ${formatDisplayTime(nextTask.startTime).toLowerCase()}` : ''}
+              />
+            </View>
+          </View>
+        </ScrollView>
+
+        <View className="absolute bottom-0 left-0 right-0 bg-paper px-6 pb-7 pt-3">
+          <Button
+            mode="contained"
+            buttonColor={colors.warm2}
+            textColor={colors.white}
+            disabled={!canSave}
+            loading={loading}
+            onPress={onSave}
+            style={{ borderRadius: 999 }}
+            contentStyle={{ height: 50 }}
+            labelStyle={{ fontSize: 16, fontWeight: '700' }}
+          >
+            Save changes
+          </Button>
+        </View>
+
+        <Snackbar visible={Boolean(error)} onDismiss={onDismissError} duration={4000}>
+          {error}
+        </Snackbar>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-paper" edges={['top', 'bottom']}>
@@ -254,7 +466,7 @@ export function TaskFormView({
                 ref={titleInputRef}
                 value={title}
                 onChangeText={onChangeTitle}
-                placeholder={mode === 'edit' ? 'Task name' : 'Add a task'}
+                placeholder="Add a task"
                 placeholderTextColor={colors.warm}
                 className="flex-1 text-[32px] font-bold tracking-[-0.96px] text-ink"
               />
@@ -263,7 +475,7 @@ export function TaskFormView({
                   {formatTimeRange(start, end)}
                 </Text>
               </View>
-              <Pressable onPress={mode === 'edit' ? onDelete : () => onChangeTitle('')}>
+              <Pressable onPress={() => onChangeTitle('')}>
                 <Text className="text-[12px] text-warm">x</Text>
               </Pressable>
             </View>
@@ -322,28 +534,6 @@ export function TaskFormView({
             ))}
           </View>
         </View>
-
-        {mode === 'edit' ? (
-          <View className="px-6 pt-8">
-            <Text className="pb-3 text-[11px] font-medium uppercase tracking-[-0.11px] text-warm2">
-              State
-            </Text>
-            <View className="flex-row rounded-full bg-warm4 p-1">
-              {(['scheduled', 'skipped', 'completed'] as const).map((option) => (
-                <Button
-                  key={option}
-                  mode={status === option ? 'contained' : 'text'}
-                  onPress={() => onChangeStatus(option)}
-                  buttonColor={status === option ? colors.paper : 'transparent'}
-                  textColor={status === option ? colors.ink : colors.warm}
-                  style={{ flex: 1, borderRadius: 999 }}
-                >
-                  {option === 'scheduled' ? 'Active' : option}
-                </Button>
-              ))}
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
 
       <View className="absolute bottom-0 left-0 right-0 bg-paper px-4 pb-6 pt-3">

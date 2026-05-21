@@ -87,7 +87,7 @@ describe('TaskFormView', () => {
 
   it('renders edit-specific controls and routes actions through the current handlers', () => {
     const onChangeStatus = jest.fn();
-    const onDelete = jest.fn();
+    const onSave = jest.fn();
 
     renderTaskFormView({
       mode: 'edit',
@@ -95,18 +95,25 @@ describe('TaskFormView', () => {
       validation: null,
       status: 'scheduled',
       onChangeStatus,
-      onDelete,
+      onSave,
     });
 
+    expect(screen.getByText('Edit Task')).toBeOnTheScreen();
+    expect(screen.getByText('Task')).toBeOnTheScreen();
+    expect(screen.getByText('Schedule')).toBeOnTheScreen();
     expect(screen.getByText('State')).toBeOnTheScreen();
     expect(screen.getByText('Active')).toBeOnTheScreen();
-    expect(screen.getByText('skipped')).toBeOnTheScreen();
-    expect(screen.getByText('completed')).toBeOnTheScreen();
+    expect(screen.getByText('Skipped')).toBeOnTheScreen();
+    expect(screen.getByText('Completed')).toBeOnTheScreen();
+    expect(screen.getByText('In your day')).toBeOnTheScreen();
+    expect(screen.getByText('No previous task')).toBeOnTheScreen();
+    expect(screen.getByText('Review notes')).toBeOnTheScreen();
+    expect(screen.getByText('No next task')).toBeOnTheScreen();
 
-    fireEvent.press(screen.getByText('skipped'));
+    fireEvent.press(screen.getByText('Skipped'));
     expect(onChangeStatus).toHaveBeenCalledWith('skipped');
 
-    fireEvent.press(screen.getByText('x'));
-    expect(onDelete).toHaveBeenCalledTimes(1);
+    fireEvent.press(screen.getByText('Save changes'));
+    expect(onSave).toHaveBeenCalledTimes(1);
   });
 });

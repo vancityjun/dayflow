@@ -120,15 +120,33 @@ function HomePreview({ scenarioId, onBack }: { scenarioId: string; onBack: () =>
 }
 
 function TaskFormPreview({ scenarioId, onBack }: { scenarioId: string; onBack: () => void }) {
+  const editPreviewStart = new Date(2026, 3, 28, 11, 30);
+  const editPreviewEnd = new Date(2026, 3, 28, 12, 45);
   const existing =
     scenarioId === 'task-edit'
       ? buildMockTask(
-          'Study React',
-          new Date().toISOString(),
-          addMinutes(new Date(), 45),
+          'Design review',
+          editPreviewStart.toISOString(),
+          editPreviewEnd.toISOString(),
           'scheduled',
         )
       : null;
+  const previewPreviousTask = existing
+    ? buildMockTask(
+        'Coffee & walk',
+        new Date(2026, 3, 28, 9, 30).toISOString(),
+        new Date(2026, 3, 28, 10, 15).toISOString(),
+        'completed',
+      )
+    : undefined;
+  const previewNextTask = existing
+    ? buildMockTask(
+        'Lunch',
+        new Date(2026, 3, 28, 13, 0).toISOString(),
+        new Date(2026, 3, 28, 13, 45).toISOString(),
+        'scheduled',
+      )
+    : undefined;
 
   const [title, setTitle] = useState(existing?.title ?? '');
   const [start, setStart] = useState(
@@ -162,6 +180,9 @@ function TaskFormPreview({ scenarioId, onBack }: { scenarioId: string; onBack: (
       end={end}
       status={status}
       durationLabel={durationLabel}
+      dayLabel={existing ? 'Tue · Apr 28' : undefined}
+      previousTask={previewPreviousTask}
+      nextTask={previewNextTask}
       validation={validation}
       loading={false}
       error={null}

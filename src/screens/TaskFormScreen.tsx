@@ -3,7 +3,13 @@ import { Alert } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { useTaskStore } from '../store/taskStore';
-import { formatDuration, formatInputTime, parseTimeInput } from '../utils/time';
+import {
+  formatDuration,
+  formatInputTime,
+  isSameLocalDay,
+  parseTimeInput,
+  sortByStartTime,
+} from '../utils/time';
 import { TaskFormView } from '../views/TaskFormView';
 
 type CreateProps = NativeStackScreenProps<RootStackParamList, 'CreateTask'>;
@@ -15,6 +21,21 @@ export function TaskFormScreen({ navigation, route }: Props) {
   const editingId = route.name === 'EditTask' ? route.params.taskId : undefined;
   const { tasks, addTask, updateTask, deleteTask, error, clearError, loading } = useTaskStore();
   const existing = tasks.find((task) => task.id === editingId);
+  const dayTasks = existing
+    ? sortByStartTime(
+        tasks.filter((task) =>
+          isSameLocalDay(new Date(task.startTime), new Date(existing.startTime)),
+        ),
+      )
+    : [];
+  const editingIndex = existing ? dayTasks.findIndex((task) => task.id === existing.id) : -1;
+  const previousTask = editingIndex > 0 ? dayTasks[editingIndex - 1] : undefined;
+  const nextTask = editingIndex >= 0 ? dayTasks[editingIndex + 1] : undefined;
+  const dayLabel = existing
+    ? new Date(existing.startTime)
+        .toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+        .replace(',', ' ·')
+    : undefined;
 
   const defaultStart = new Date();
   defaultStart.setMinutes(Math.ceil(defaultStart.getMinutes() / 5) * 5, 0, 0);
@@ -79,6 +100,9 @@ export function TaskFormScreen({ navigation, route }: Props) {
       end={end}
       status={status}
       durationLabel={formatDuration(duration)}
+      dayLabel={dayLabel}
+      previousTask={previousTask}
+      nextTask={nextTask}
       validation={validation}
       loading={loading}
       error={error}
